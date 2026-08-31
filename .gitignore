@@ -1,0 +1,7 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+data_sample.json
+data_sample_random.json
