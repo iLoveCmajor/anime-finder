@@ -1,0 +1,26 @@
+[project]
+name = "anime-finder"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Vladimir Lopatkin", email = "vlopatkinv@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "jupyter>=1.1.1",
+    "minsearch>=0.2.0",
+    "numpy>=2.5.2",
+    "onnxruntime>=1.29.0",
+    "openai>=3.6.0",
+    "pandas>=3.0.5",
+    "python-dotenv>=1.2.3",
+    "streamlit>=1.62.0",
+    "tokenizers>=0.23.1",
+    "tqdm>=4.70.0",
+]
+
+[dependency-groups]
+dev = [
+    "huggingface-hub>=1.29.0",
+]

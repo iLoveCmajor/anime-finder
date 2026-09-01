@@ -89,6 +89,34 @@ against a less curated slice.
   (no single year has anywhere near 5000 anime), looping over years
   from ~1960-2026.
 
+## Ingestion: done (2026-09-01)
+
+`ingest.py` (stdlib only) pulls pages 1-100 (perPage 50) sorted by
+popularity, cleans descriptions (strips HTML, unescapes entities,
+normalizes whitespace), drops spoiler-flagged tags, and applies the
+quality filter. Output: `data/anime.jsonl` (gitignored — regenerate
+with `python3 ingest.py`, ~3 min).
+
+Actual results, full 5000-item pull:
+
+- **Kept 4313, dropped 687 (13.7%)** to the quality filter — in line
+  with expectations from the sample.
+- Description length: 150-5185 chars, median 520 (matches the sample).
+- Tags per item: 5-57, mean 13.5.
+- Format spread: mostly TV (2757) and MOVIE (600), rest OVA/ONA/
+  SPECIAL/TV_SHORT (small MUSIC/None counts, negligible).
+- Year range 1969-2027 (includes unreleased/upcoming titles - AniList
+  lists these ahead of airing).
+- **50% have a SEQUEL/PREQUEL relation** — higher than the 35%
+  broader-catalog figure, as expected once we cut to popularity-only.
+  Still deferred per Open decisions, but now confirmed as a real
+  fraction of the actual corpus, not just a sample artifact.
+- 0 duplicate ids.
+- Spot-checked entries confirm real synopses, not junk, at the low
+  end near the 150-char cutoff (worst case seen: an OVA description
+  that opens with a promotional sentence but still has real plot
+  content after it — an acceptable MVP tradeoff, not perfect).
+
 ## Corpus size: top 5000 by popularity (decided)
 
 - Sort by `popularity`, pull `page*perPage <= 5000` — this fits inside
