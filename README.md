@@ -71,6 +71,17 @@ Built an offline LLM-as-judge that checks whether the generated answer surfaces 
 
 Quality is statistically tied at this sample size (a 1-query difference). The precise variant was chosen on practical grounds: ~13% cheaper, and the parseable `ANSWER:` line is what the monitoring dashboard's "most recommended anime" chart is built on.
 
+### Query rewriting: evaluated, not shipped
+
+Tried rewriting the user's query with an LLM before embedding it (`query_rewrite.py`, `search_backends.RewritingVectorIndexAdapter`) — expanding a short, casual description into fuller, more synopsis-like language before retrieval. Compared against plain vector search on the same ground truth:
+
+| Method | Hit rate | MRR |
+|---|---|---|
+| Vector (shipped) | 0.293 | 0.223 |
+| Vector + query rewrite | **0.197** | **0.146** |
+
+This made retrieval clearly worse, not better. The ground-truth queries are deliberately short and sparse (see the retrieval evaluation above), and the rewrite step expands them into long, generic synopsis-style paragraphs that dilute the embedding — a short, specific phrase concentrates its vector on the few distinctive details that matter for matching; a longer, genericized paragraph averages across a lot of stock phrasing that doesn't correspond to how AniList actually writes synopses. `app.py` continues shipping plain vector search unchanged. Full spot-check examples and the evaluation run are in `evaluation.ipynb`.
+
 ## Running it
 
 ### Locally
@@ -104,8 +115,10 @@ ingest.py              - pulls + cleans the AniList dataset
 download.py             - fetches the ONNX embedding model
 embedder.py              - ONNX embedding wrapper (encode/encode_batch)
 rag_helper.py             - RAGBase: search -> build_context -> build_prompt -> llm -> rag
-search_backends.py         - adapts VectorSearch to RAGBase's search() interface
-evaluation_utils.py         - structured-output + parallel-eval helpers (from the course)
+search_backends.py         - adapts VectorSearch to RAGBase's search() interface;
+                              also has RewritingVectorIndexAdapter (evaluated, not shipped)
+query_rewrite.py             - LLM query rewriting (evaluated, not shipped - see README)
+evaluation_utils.py            - structured-output + parallel-eval helpers (from the course)
 judge.py                     - offline LLM-as-judge for comparing prompt variants
 evaluation.ipynb              - retrieval + LLM evaluation: ground truth generation,
                                  hit-rate/MRR comparison, prompt-variant comparison
@@ -131,6 +144,7 @@ pull_sample.py, pull_sample_random.py, data_sample*.json
 | Containerization | `docker-compose.yml` — app + dashboard |
 | Reproducibility | "Running it" — instructions, `uv.lock` for pinned deps, dataset regenerable via `ingest.py` |
 | Best practices: hybrid search | "Evaluation" — evaluated in the retrieval comparison (not shipped, vector search won) |
+| Best practices: query rewriting | "Evaluation" — evaluated (not shipped, made retrieval worse) |
 
 ## Data source & attribution
 
