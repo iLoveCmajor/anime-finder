@@ -5,6 +5,8 @@ import streamlit as st
 
 import db
 
+db.init_db()
+
 st.title("Anime Finder - Monitoring Dashboard")
 
 stats = db.get_stats()
