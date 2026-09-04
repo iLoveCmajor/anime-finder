@@ -63,7 +63,7 @@ def fetch_page(page, retries=3):
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
                 return json.load(resp)["data"]["Page"]["media"]
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
             wait = 5 * (attempt + 1)
             print(f"  page {page} failed ({e}), retrying in {wait}s...")
             time.sleep(wait)
