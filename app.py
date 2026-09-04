@@ -8,12 +8,14 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 import db
+from auth import require_password
 from embedder import Embedder
 from minsearch import VectorSearch
 from rag_helper import RAGBase
 from search_backends import VectorIndexAdapter
 
 load_dotenv()
+require_password()
 db.init_db()
 
 

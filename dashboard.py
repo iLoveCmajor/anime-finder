@@ -4,7 +4,9 @@ import pandas as pd
 import streamlit as st
 
 import db
+from auth import require_password
 
+require_password()
 db.init_db()
 
 st.title("Anime Finder - Monitoring Dashboard")
