@@ -37,6 +37,7 @@ class RAGBase:
         self.instructions = instructions
         self.prompt_template = prompt_template
         self.model = model
+        self.last_results = None
 
     def search(self, query, num_results=5):
         return self.index.search(query, num_results=num_results)
@@ -78,6 +79,7 @@ class RAGBase:
 
     def rag(self, query):
         search_results = self.search(query)
+        self.last_results = search_results
         prompt = self.build_prompt(query, search_results)
         answer = self.llm(prompt)
         return answer

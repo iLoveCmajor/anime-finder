@@ -60,8 +60,8 @@ query = st.text_input(
 if st.button("Search") and query:
     with st.spinner("Searching..."):
         start = time.time()
-        results = rag.search(query)
         answer = rag.rag(query)
+        results = rag.last_results
         response_time = time.time() - start
 
     conversation_id = db.save_conversation(query, answer, response_time)
