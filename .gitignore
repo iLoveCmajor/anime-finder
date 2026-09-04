@@ -3,8 +3,10 @@
 __pycache__/
 *.pyc
 *.ipynb
+!evaluation.ipynb
 .ipynb_checkpoints/
 data_sample.json
 data_sample_random.json
-data/
+data/*
+!data/ground_truth.csv
 models/
