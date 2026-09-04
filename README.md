@@ -107,13 +107,14 @@ rag_helper.py             - RAGBase: search -> build_context -> build_prompt -> 
 search_backends.py         - adapts VectorSearch to RAGBase's search() interface
 evaluation_utils.py         - structured-output + parallel-eval helpers (from the course)
 judge.py                     - offline LLM-as-judge for comparing prompt variants
-app.py                         - the Streamlit app
-dashboard.py                    - the monitoring dashboard
-db.py                             - SQLite: conversations + feedback
-PLAN.md                            - full build log and decision history
+evaluation.ipynb              - retrieval + LLM evaluation: ground truth generation,
+                                 hit-rate/MRR comparison, prompt-variant comparison
+app.py                          - the Streamlit app
+dashboard.py                     - the monitoring dashboard
+db.py                              - SQLite: conversations + feedback
 pull_sample.py, pull_sample_random.py, data_sample*.json
                                      - early data-source exploration scripts, not part
-                                       of the running app (kept for the decision history)
+                                       of the running app (kept for reference)
 ```
 
 ## Where to find each rubric item

@@ -10,3 +10,5 @@ data_sample_random.json
 data/*
 !data/ground_truth.csv
 models/
+PLAN.md
+.DS_Store
