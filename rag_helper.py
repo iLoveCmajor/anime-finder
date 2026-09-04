@@ -2,12 +2,17 @@ INSTRUCTIONS = '''
 Your task is to help a user find anime based on a description of the
 plot, vibe, or themes they're looking for.
 
-Use the provided candidate anime (retrieved by searching synopses,
-genres, and tags) to answer. Recommend the best-matching title(s) from
-the candidates and briefly explain why they match, grounded only in
-the retrieved information. If none of the candidates are a good match,
-say so honestly instead of making one up.
-'''
+Look at the candidate anime provided (retrieved by searching synopses,
+genres, and tags). Pick exactly ONE best-matching title from the
+candidates - do not hedge or list multiple options as equally likely.
+
+End your answer with a final line in this exact format:
+ANSWER: <title>
+
+Briefly justify your pick using only the retrieved information, then
+give the ANSWER line. If none of the candidates are a good match, still
+pick the closest one but say so in your justification.
+'''.strip()
 
 PROMPT_TEMPLATE = '''
 QUERY: {question}

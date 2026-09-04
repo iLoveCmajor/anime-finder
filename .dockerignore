@@ -1,0 +1,11 @@
+.venv
+.git
+__pycache__
+*.pyc
+*.ipynb
+.ipynb_checkpoints
+.env
+data_sample.json
+data_sample_random.json
+notebook.ipynb
+data/monitoring.db
