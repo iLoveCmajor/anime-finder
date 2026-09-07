@@ -4,6 +4,15 @@ Describe a plot, a vibe, or a half-remembered scene — get back the anime it's 
 
 Built as a capstone project for [LLM Zoomcamp](https://github.com/DataTalksClub/llm-zoomcamp). You don't need to have taken the course to read this; everything relevant is explained below.
 
+## Live demo
+
+Deployed on a small Hetzner-style VPS via the same Docker setup described below:
+
+- App: http://64.226.115.236:8501
+- Dashboard: http://64.226.115.236:8502
+
+Both are gated behind a shared password — **`datatalks`** — set purely to keep the demo off search-engine crawlers/bots, not as real access control. Please don't hammer it; LLM calls are billed to the author's personal API key.
+
 ## The problem
 
 If you half-remember an anime — "the one where humanity lives behind giant walls because of man-eating monsters" — you can't search for it by title, because you don't know the title. Keyword search over plot summaries doesn't help much either: your description almost never uses the same words as the official synopsis. This app does semantic search over ~4,300 anime synopses, then has an LLM turn the best-matching candidates into a grounded recommendation with an explanation, so a vague description is enough to find the title.
@@ -145,6 +154,7 @@ pull_sample.py, pull_sample_random.py, data_sample*.json
 | Reproducibility | "Running it" — instructions, `uv.lock` for pinned deps, dataset regenerable via `ingest.py` |
 | Best practices: hybrid search | "Evaluation" — evaluated in the retrieval comparison (not shipped, vector search won) |
 | Best practices: query rewriting | "Evaluation" — evaluated (not shipped, made retrieval worse) |
+| Cloud deployment | "Live demo" above — running on a VPS via the same Docker setup |
 
 ## Data source & attribution
 
