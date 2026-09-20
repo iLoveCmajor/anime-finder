@@ -1,0 +1,5 @@
+# The evaluation notebook is documentation; the implementation is the 11 Python
+# modules. Without this, GitHub's badge reads "Jupyter Notebook" (29,712 bytes,
+# evaluation.ipynb alone) over "Python" (28,012 across the modules) — a
+# 1,700-byte margin that mislabels the repo on the profile.
+*.ipynb linguist-documentation
