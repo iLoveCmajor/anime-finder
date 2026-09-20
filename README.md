@@ -6,12 +6,7 @@ Built as a capstone project for [LLM Zoomcamp](https://github.com/DataTalksClub/
 
 ## Live demo
 
-Deployed on a small Hetzner-style VPS via the same Docker setup described below:
-
-- App: http://64.226.115.236:8501
-- Dashboard: http://64.226.115.236:8502
-
-Both are gated behind a shared password — **`datatalks`** — set purely to keep the demo off search-engine crawlers/bots, not as real access control. Please don't hammer it; LLM calls are billed to the author's personal API key.
+Deployed on a small VPS via the same Docker setup described below, gated behind a shared password set purely to keep the demo off search-engine crawlers/bots, not as real access control. The demo was taken down after the course's review period closed; the app is fully reproducible locally or via Docker following the instructions below.
 
 ## The problem
 
