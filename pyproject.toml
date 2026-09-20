@@ -1,7 +1,7 @@
 [project]
 name = "anime-finder"
 version = "0.1.0"
-description = "Add your description here"
+description = "Semantic search + RAG over anime synopses: describe a plot or vibe, get back the title"
 readme = "README.md"
 authors = [
     { name = "Vladimir Lopatkin", email = "vlopatkinv@gmail.com" }

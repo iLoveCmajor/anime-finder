@@ -93,14 +93,24 @@ if "answer" in st.session_state:
 
     conversation_id = st.session_state.get("conversation_id")
     if conversation_id is not None:
-        col1, col2 = st.columns(2)
+        if "votes" not in st.session_state:
+            st.session_state.votes = {}
 
-        with col1:
-            if st.button("\U0001F44D", key=f"feedback_up_{conversation_id}"):
-                db.save_feedback(conversation_id, "user", score=1)
-                st.success("Thanks!")
+        given = st.session_state.votes.get(conversation_id)
 
-        with col2:
-            if st.button("\U0001F44E", key=f"feedback_down_{conversation_id}"):
-                db.save_feedback(conversation_id, "user", score=-1)
-                st.success("Thanks for the feedback!")
+        if given is not None:
+            st.caption("Thanks — feedback recorded." if given > 0 else "Thanks for the feedback.")
+        else:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if st.button("\U0001F44D", key=f"feedback_up_{conversation_id}"):
+                    db.save_feedback(conversation_id, "user", score=1)
+                    st.session_state.votes[conversation_id] = 1
+                    st.rerun()
+
+            with col2:
+                if st.button("\U0001F44E", key=f"feedback_down_{conversation_id}"):
+                    db.save_feedback(conversation_id, "user", score=-1)
+                    st.session_state.votes[conversation_id] = -1
+                    st.rerun()

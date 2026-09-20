@@ -134,22 +134,22 @@ pull_sample.py, pull_sample_random.py, data_sample*.json
                                        of the running app (kept for reference)
 ```
 
-## Where to find each rubric item
+## Feature map
 
-| Criterion | Where |
+| Area | Where |
 |---|---|
-| Problem description | This README, "The problem" |
-| Retrieval flow | "How it works" — knowledge base + LLM |
+| Problem it solves | This README, "The problem" |
+| Retrieval + generation flow | "How it works" — knowledge base + LLM |
 | Retrieval evaluation | "Evaluation" — three methods compared, best one used |
-| LLM evaluation | "Evaluation" — two prompt variants compared, best one used |
+| LLM output evaluation | "Evaluation" — two prompt variants compared, best one used |
 | Interface | Streamlit app (`app.py`) |
-| Ingestion pipeline | `ingest.py` — semi-automated script |
+| Ingestion pipeline | `ingest.py` |
 | Monitoring | `db.py` + `dashboard.py` — user feedback collected + 5-chart dashboard |
 | Containerization | `docker-compose.yml` — app + dashboard |
 | Reproducibility | "Running it" — instructions, `uv.lock` for pinned deps, dataset regenerable via `ingest.py` |
-| Best practices: hybrid search | "Evaluation" — evaluated in the retrieval comparison (not shipped, vector search won) |
-| Best practices: query rewriting | "Evaluation" — evaluated (not shipped, made retrieval worse) |
-| Cloud deployment | "Live demo" above — running on a VPS via the same Docker setup |
+| Hybrid search | "Evaluation" — evaluated in the retrieval comparison (not shipped, vector search won) |
+| Query rewriting | "Evaluation" — evaluated (not shipped, made retrieval worse) |
+| Cloud deployment | "Live demo" above — deployed on a VPS via the same Docker setup |
 
 ## Data source & attribution
 
