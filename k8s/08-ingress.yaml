@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anime-finder-ingress
+  namespace: anime-finder
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: anime-finder.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: anime-finder-app
+                port:
+                  number: 80
+    - host: dashboard.anime-finder.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: anime-finder-dashboard
+                port:
+                  number: 80

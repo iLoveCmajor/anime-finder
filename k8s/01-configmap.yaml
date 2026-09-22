@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anime-finder-config
+  namespace: anime-finder
+data:
+  DB_PATH: /app/state/monitoring.db

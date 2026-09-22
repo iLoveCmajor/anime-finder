@@ -112,6 +112,22 @@ make docker-down
 
 The Docker image bakes in `data/` and `models/` at build time (so containers start instantly, with no AniList/HuggingFace dependency at runtime) — run the ingestion/download steps locally once before `docker compose build` picks them up. The app and dashboard run as separate containers sharing a Docker volume for the SQLite monitoring database, so feedback given in the app immediately shows up in the dashboard.
 
+### With Kubernetes
+
+A Minikube deployment of the same app — 8 hand-written manifests in [`k8s/`](k8s/) (no Helm/Kustomize, so each primitive stays visible): Namespace, ConfigMap, Secret (created imperatively from `.env`, never committed), PVC, two Deployments + Services (app + dashboard, sharing one PVC-backed SQLite file so feedback syncs between them), and an optional Ingress for host-based routing (`make k8s-ingress`, not part of the default apply). Built as a Kubernetes learning exercise on top of this project.
+
+Prerequisites are the same as "With Docker" above: a populated `.env` (`cp .env.example .env`, add your key) and `data/`/`models/` generated locally (`uv run python download.py && uv run python ingest.py`) so `k8s-build` has something to bake into the image.
+
+```bash
+minikube start --driver=docker --cpus=4 --memory=6g
+make k8s-build && make k8s-apply
+make k8s-status         # verify: both Deployments 1/1, PVC Bound
+make k8s-open-app       # opens the app — minikube service, no sudo/hosts-file needed
+make k8s-open-dashboard # opens the dashboard the same way
+```
+
+`make k8s-status` and the two `k8s-open-*` targets are the fastest way to independently confirm this deployment actually works. Full design writeup (shared-SQLite tradeoff, secrets handling, optional Ingress path) in [`k8s/README.md`](k8s/README.md).
+
 ## Project structure
 
 ```
@@ -150,6 +166,7 @@ pull_sample.py, pull_sample_random.py, data_sample*.json
 | Hybrid search | "Evaluation" — evaluated in the retrieval comparison (not shipped, vector search won) |
 | Query rewriting | "Evaluation" — evaluated (not shipped, made retrieval worse) |
 | Cloud deployment | "Live demo" above — deployed on a VPS via the same Docker setup |
+| Kubernetes deployment | "With Kubernetes" above — `k8s/` manifests, `make k8s-apply` + `make k8s-status`/`k8s-open-app` to verify |
 
 ## Data source & attribution
 

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anime-finder-dashboard
+  namespace: anime-finder
+  labels:
+    app: anime-finder
+    component: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anime-finder
+      component: dashboard
+  template:
+    metadata:
+      labels:
+        app: anime-finder
+        component: dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: anime-finder:latest
+          # Local-only: the image is side-loaded with `minikube image load`,
+          # never pulled. On a real cluster this becomes a registry reference
+          # with a pull policy to match. Because the tag is fixed at :latest,
+          # `kubectl apply` alone will not pick up a rebuild — the spec is
+          # unchanged, so nothing restarts. `make k8s-apply` therefore ends
+          # with an explicit `kubectl rollout restart` of both Deployments.
+          imagePullPolicy: Never
+          args: ["streamlit", "run", "dashboard.py", "--server.address=0.0.0.0", "--server.port=8501"]
+          ports:
+            - containerPort: 8501
+          envFrom:
+            - configMapRef:
+                name: anime-finder-config
+          env:
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: anime-finder-secrets
+                  key: APP_PASSWORD
+                  optional: true
+          volumeMounts:
+            - name: state
+              mountPath: /app/state
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Measured at ~180Mi resident; 256Mi was tighter than it looked.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: 250m
+              memory: 384Mi
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: anime-finder-state

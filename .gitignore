@@ -12,3 +12,6 @@ data/*
 models/
 PLAN.md
 .DS_Store
+k8s/secret.yaml
+k8s/backlog.md
+k8s/notes.md

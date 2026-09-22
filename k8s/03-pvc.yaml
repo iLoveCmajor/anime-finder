@@ -1,0 +1,19 @@
+# ReadWriteOnce is enough here only because Minikube is single-node: multiple
+# Pods on the SAME node can mount an RWO volume concurrently, which is how
+# both the app and dashboard Deployments share one SQLite file below. This
+# does NOT generalize to a multi-node cluster — there you'd either be forced
+# to pin both Deployments to one node, or need RWX storage (NFS/EFS), and
+# SQLite over a network filesystem is a known corruption risk. The real fix
+# at that point is to stop sharing a SQLite file across pods and move to a
+# proper DB server (e.g. a Postgres StatefulSet).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: anime-finder-state
+  namespace: anime-finder
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
