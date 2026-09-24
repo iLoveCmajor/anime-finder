@@ -5,7 +5,7 @@ Describe the ML task you want to solve in plain English and get matched to a pre
 **What's in it:**
 
 - **A resumable, 5-stage ingestion pipeline for the Hub.** It narrows 10,000 models to 3,613, with a drop count for every filter ([details](#ingestion-ingestpy)).
-- **An embedding design built around the embedder's 128-token limit.** Each model gets a dedicated `embed_text`, and an ablation shows it beats embedding the raw card ([why](#why-a-separate-embed_text), [Experiment E](#what-to-embed-experiment-e)).
+- **An embedding design built around the embedder's 128-token limit.** Each model gets a dedicated `embed_text`, and an ablation shows it beats embedding the raw card ([why](#why-a-separate-embed_text), [Experiment C](#what-to-embed-experiment-c)).
 - **Evaluation end to end, not just retrieval.** Keyword, vector and hybrid search, query rewriting and prompt variants are compared, and an LLM judge accepts equally valid alternative models ([results](#evaluation)).
 - **Operations:** a monitoring dashboard, Docker Compose, a Minikube deployment, and tests with CI.
 
@@ -68,7 +68,7 @@ Kept: **3,613 of 10,000**, across 54 tasks. The largest are text generation (912
 
 The embedding model (`all-MiniLM-L6-v2`) truncates input at **128 tokens**, about 100 words. A model card's first 100 words are usually a title, badges and links, so embedding the raw card mostly embeds noise. `embed_text` packs the signal into that window instead: a plain-language description of the task, then library, languages, up to 8 topic tags, and the card's first real prose paragraph.
 
-The task description matters more than it looks. Bare tag names embed almost identically when they share words, so before this was added, "transcribe English speech to text" retrieved only text-to-speech models. Descriptions that spell out the direction ("transcribes spoken audio into written text", "reads written text aloud") fixed it. Experiment E below measures this.
+The task description matters more than it looks. Bare tag names embed almost identically when they share words, so before this was added, "transcribe English speech to text" retrieved only text-to-speech models. Descriptions that spell out the direction ("transcribes spoken audio into written text", "reads written text aloud") fixed it. Experiment C below measures this.
 
 ### The rest of the pipeline
 
@@ -90,6 +90,8 @@ The corpus is a **curated snapshot of popular models**, not the whole Hub:
 
 All numbers come from `evaluation.ipynb`, run on the 2026-09-24 corpus published as [`ilovecmajor/hf-model-finder-snapshot`](https://huggingface.co/datasets/ilovecmajor/hf-model-finder-snapshot). They were produced fresh for this dataset: results from the anime version of this project were not carried over. To reproduce them, download that corpus with `uv run python ingest.py --from-snapshot` instead of running a fresh ingest. The retrieval numbers then come out exactly the same; the judge and rewrite numbers call an LLM, so they vary slightly between runs.
 
+**How big a difference counts.** With 300 queries, a hit rate near 0.3 has a standard error of about 0.026, so gaps under ~0.05 (about 15 queries) are treated as noise. For the judge, with 50 answers, the band is about ±0.13 (about 7 answers). This is a rough two-standard-error rule; comparisons on the same queries are somewhat tighter, so it errs on the side of caution. Every verdict below uses it.
+
 ### Ground truth (Experiment A)
 
 For 100 randomly sampled models, an LLM wrote 3 search queries each that someone who needs *that* model might type, giving 300 (query, model) pairs. Generation cost $0.08.
@@ -105,13 +107,12 @@ For 100 randomly sampled models, an LLM wrote 3 search queries each that someone
 | **Vector (shipped)** | 0.297 | 0.195 | **0.897** | **0.763** |
 | Hybrid (RRF) | **0.337** | **0.221** | 0.863 | 0.583 |
 
-- **Keyword search is competitive.** Model queries share exact vocabulary with model cards ("NER", "Bengali", "toxic").
-- **Hybrid finds the exact model most often.** Sweeping RRF's `k` from 1 to 60 barely changes it, so this isn't a tuning artifact.
-- **Vector puts a model of the right task first far more often.** Keyword matches drag wrong-task models into the top ranks.
+- **Beyond noise: vector puts a model of the right task first far more often** than hybrid (task@1 0.763 vs 0.583, 54 queries). Keyword matches drag wrong-task models into the top ranks. Keyword alone is also clearly worse at getting the right task into the top 5.
+- **Within noise: exact-model hit rate.** Hybrid is ahead of vector by 12 queries, and keyword is close behind; model queries share exact vocabulary with model cards ("NER", "Bengali", "toxic"). Sweeping RRF's `k` from 1 to 60 barely changes hybrid's number, so it's not a tuning artifact, but the gap is suggestive, not conclusive.
 
-This is a real trade-off, so it was settled end to end in Experiment C.
+Vector vs hybrid was then compared end to end in Experiment D.
 
-### What to embed (Experiment E)
+### What to embed (Experiment C)
 
 | Text embedded per model | Hit rate | MRR | Task hit | Task@1 |
 |---|---|---|---|---|
@@ -121,12 +122,12 @@ This is a real trade-off, so it was settled end to end in Experiment C.
 | Metadata only (no prose) | 0.180 | 0.115 | 0.770 | 0.647 |
 | Name words + `embed_text` | **0.310** | **0.208** | 0.883 | **0.770** |
 
-- **Plain-language task descriptions beat bare tag names on every metric.**
-- **Card prose carries most of the signal.** Metadata alone is clearly worst.
-- **Raw cards rank the right task first much less often.** Their first 128 tokens are mostly titles and badges.
-- **Adding the repo name's words gains 4 queries out of 300.** That's within noise, and task hit rate drops slightly, so it isn't shipped.
+- **Beyond noise: raw cards rank the right task first much less often** (task@1 0.683 vs 0.763, 24 queries). Their first 128 tokens are mostly titles and badges.
+- **Beyond noise: card prose carries most of the signal.** Metadata alone is clearly worst.
+- **Within noise, but consistent: task descriptions vs bare tag names.** They're ahead on every metric, though no single gap clears the band. They ship because they fix a concrete failure: with bare tags, "transcribe English speech to text" retrieved only text-to-speech models.
+- **Within noise: the repo name's words** (+4 queries, with a slightly lower task hit rate), so they aren't shipped.
 
-### LLM output: prompts and retrieval, judged end to end (Experiment C)
+### LLM output: prompts and retrieval, judged end to end (Experiment D)
 
 An offline LLM judge (`judge.py`) checks whether the final answer recommends the ground-truth model, **or a different model that satisfies every constraint in the query at least as well**. The same 50 sampled queries were used for each configuration:
 
@@ -136,11 +137,11 @@ An offline LLM judge (`judge.py`) checks whether the final answer recommends the
 | **Forced single pick + vector (shipped)** | **68%** | $0.117 |
 | Forced single pick + hybrid | **68%** | $0.112 |
 
-- **Hybrid's exact-id edge doesn't reach the final answer.** Both retrieval methods tie at 34/50, so the simpler vector search ships, with no keyword index in the app.
-- **The forced single pick is 3 queries ahead of the open-ended prompt.** That's within noise at this sample size. It ships because it's ~27% cheaper and its parseable `ANSWER:` line feeds the dashboard's "most recommended model" chart.
+- **Vector vs hybrid: a tie** at 34/50, so the simpler vector search ships, with no keyword index in the app.
+- **Within noise: the forced single pick is 3 answers ahead of the open-ended prompt** (the band is ±7). It ships on practical grounds: ~27% cheaper, and its parseable `ANSWER:` line feeds the dashboard's "most recommended model" chart.
 - **Exact-id hit rate understates quality.** At least 4 of the shipped configuration's 34 "good" verdicts were equally valid alternatives to the ground-truth model, such as another English financial-sentiment classifier.
 
-### Query rewriting: evaluated, not shipped (Experiment D)
+### Query rewriting: evaluated, not shipped (Experiment E)
 
 `query_rewrite.py` has an LLM rewrite the user's query into model-card vocabulary before retrieval: a short phrase, not a paragraph. For example, "lightweight entity extraction model for many languages" becomes "multilingual token classification / named entity recognition lightweight model".
 
@@ -151,7 +152,7 @@ An offline LLM judge (`judge.py`) checks whether the final answer recommends the
 | Hybrid | 0.337 | 0.221 | 0.863 | 0.583 |
 | Hybrid + rewrite | 0.300 | 0.204 | 0.857 | 0.677 |
 
-Rewriting slightly hurts, and it costs an extra LLM round trip per query. An earlier run showed rewriting *helping* task@1 (0.743 → 0.780), before `embed_text` carried task descriptions. Moving that everyday-words-to-ML-task-name translation to the index side made the rewrite redundant, at no cost per query.
+**No gain for the shipped setup, and an extra LLM call per query.** For vector search every gap is within noise, so rewriting has no measurable effect there. It does lift hybrid's task@1 beyond noise (0.583 → 0.677, 28 queries), because the rewritten phrase uses the cards' task vocabulary. But hybrid + rewrite still ranks the right task first less often than plain vector (0.763), which needs no LLM call. Since rewriting adds an LLM round trip, and its latency, before retrieval starts, it isn't shipped. An earlier run, before `embed_text` carried task descriptions, showed rewriting ahead on task@1 (+11 queries). That was also within noise, so it's at most a hint that index-side task descriptions and query rewriting overlap.
 
 ## Running it
 
@@ -233,14 +234,14 @@ k8s/                                   - Minikube manifests + design notes
 | Problem it solves | This README, "The problem" |
 | Retrieval + generation flow | "How it works": knowledge base + LLM |
 | Ingestion pipeline | `ingest.py`; "Ingestion" above, with drop counts per filter |
-| Retrieval evaluation | "Evaluation": Experiments B and E, with the best configuration shipped |
-| LLM output evaluation | "Evaluation": Experiment C, prompt variants judged end to end |
+| Retrieval evaluation | "Evaluation": Experiments B and C, with the best configuration shipped |
+| LLM output evaluation | "Evaluation": Experiment D, prompt variants judged end to end |
 | Interface | Streamlit app (`app.py`) |
 | Monitoring | `db.py` + `dashboard.py`: user feedback collected, dashboard with 5 charts |
 | Containerization | `docker-compose.yml`: app + dashboard |
 | Reproducibility | `uv.lock` pins dependencies; the evaluated corpus is published as [`ilovecmajor/hf-model-finder-snapshot`](https://huggingface.co/datasets/ilovecmajor/hf-model-finder-snapshot) (`ingest.py --from-snapshot`, pinned to one revision) together with the committed `data/ground_truth.csv`, so the retrieval numbers reproduce exactly; `ingest.py` builds a fresh corpus |
-| Hybrid search | Experiment B/C: evaluated, not shipped (tied end to end, vector is simpler) |
-| Query rewriting | Experiment D: evaluated, not shipped (slightly worse retrieval, extra latency) |
+| Hybrid search | Experiments B and D: evaluated, not shipped (tied end to end, vector is simpler) |
+| Query rewriting | Experiment E: evaluated, not shipped (no gain over plain vector, extra LLM call) |
 | Kubernetes deployment | "With Kubernetes": `k8s/` manifests; `make k8s-apply`, then `make k8s-status` and `make k8s-open-app` to verify |
 
 ## Data source & attribution
