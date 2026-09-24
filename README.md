@@ -88,7 +88,7 @@ All numbers come from `evaluation.ipynb`. They were produced fresh for this data
 For 100 randomly sampled models, an LLM wrote 3 search queries each that someone who needs *that* model might type, giving 300 (query, model) pairs. Generation cost $0.08.
 
 - **No name leakage.** Queries may not mention the model id, org, model family or architecture names (Qwen, BERT, Whisper, CLIP...) or dataset names. Otherwise retrieval becomes a trivial name lookup.
-- **Several right answers.** Unlike a half-remembered anime title, "English sentiment classifier" has many valid models. Queries combine the task with the model's distinguishing traits (domain, language, size) to keep the exact-id metric meaningful. Two task-level metrics are reported alongside it: whether a model of the right task appears in the top 5 (**task hit**), and whether the top result has the right task (**task@1**).
+- **Several right answers.** Unlike looking up one specific item, "English sentiment classifier" has many valid models. Queries combine the task with the model's distinguishing traits (domain, language, size) to keep the exact-id metric meaningful. Two task-level metrics are reported alongside it: whether a model of the right task appears in the top 5 (**task hit**), and whether the top result has the right task (**task@1**).
 
 ### Retrieval: three methods compared (Experiment B)
 
@@ -98,7 +98,7 @@ For 100 randomly sampled models, an LLM wrote 3 search queries each that someone
 | **Vector (shipped)** | 0.297 | 0.195 | **0.897** | **0.763** |
 | Hybrid (RRF) | **0.337** | **0.221** | 0.863 | 0.583 |
 
-- **Keyword search does much better here than for anime.** Model queries share exact vocabulary with model cards ("NER", "Bengali", "toxic").
+- **Keyword search is competitive.** Model queries share exact vocabulary with model cards ("NER", "Bengali", "toxic").
 - **Hybrid finds the exact model most often.** Sweeping RRF's `k` from 1 to 60 barely changes it, so this isn't a tuning artifact.
 - **Vector puts a model of the right task first far more often.** Keyword matches drag wrong-task models into the top ranks.
 

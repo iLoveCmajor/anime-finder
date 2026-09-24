@@ -61,8 +61,8 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
           # Measured at ~70Mi (cgroup memory) with a near-empty monitoring DB;
-          # the anime-era build measured ~180Mi, so the 384Mi limit leaves room
-          # for the DB and pandas frames to grow.
+          # the 384Mi limit leaves room for the DB and pandas frames to grow
+          # (an earlier build peaked at ~180Mi).
           resources:
             requests:
               cpu: 50m
