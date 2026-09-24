@@ -27,7 +27,7 @@ dev = [
     "ruff>=0.16.8",
 ]
 # Used directly only by the offline data pipeline (ingest.py, download.py,
-# pull_sample.py); the app never calls the Hub. It still reaches the image
+# scripts/pull_sample.py); the app never calls the Hub. It still reaches the image
 # as a transitive dependency of tokenizers.
 ingest = [
     "huggingface-hub>=1.29.0",

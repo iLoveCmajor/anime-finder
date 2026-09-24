@@ -29,8 +29,6 @@ def init_db():
                 conversation_id INTEGER REFERENCES conversations(id),
                 source TEXT NOT NULL,
                 score INTEGER,
-                relevance TEXT,
-                explanation TEXT,
                 timestamp TEXT NOT NULL
             )
         """)
@@ -53,17 +51,17 @@ def save_conversation(query, answer, response_time):
         conn.close()
 
 
-def save_feedback(conversation_id, source, score=None, relevance=None, explanation=None):
+def save_feedback(conversation_id, source, score=None):
     timestamp = datetime.now(timezone.utc).isoformat()
     conn = get_db_connection()
     try:
         conn.execute(
             """
             INSERT INTO feedback
-                (conversation_id, source, score, relevance, explanation, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (conversation_id, source, score, timestamp)
+            VALUES (?, ?, ?, ?)
             """,
-            (conversation_id, source, score, relevance, explanation, timestamp),
+            (conversation_id, source, score, timestamp),
         )
         conn.commit()
     finally:

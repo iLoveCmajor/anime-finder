@@ -169,7 +169,7 @@ make dashboard               # the dashboard, http://localhost:8502 (separate te
 
 `ingest.py` resumes where it stopped if interrupted. It reuses the saved metadata sweep; pass `--refresh` to pull a fresh one. The first app launch embeds all 3,613 models (~40s) and caches the result to `data/model_embeddings.npy`. Later launches load the cache, which is rebuilt automatically whenever any model's `embed_text` changes.
 
-Only the offline steps (`ingest.py`, `download.py`, `pull_sample.py`) use `huggingface-hub` directly, so it's declared in an `ingest` dependency group (installed by `uv sync` by default) rather than as a runtime dependency. The running app never calls the Hub.
+Only the offline steps (`ingest.py`, `download.py`, `scripts/pull_sample.py`) use `huggingface-hub` directly, so it's declared in an `ingest` dependency group (installed by `uv sync` by default) rather than as a runtime dependency. The running app never calls the Hub.
 
 ### With Docker
 
@@ -209,13 +209,13 @@ Full design writeup (shared-SQLite tradeoff, secrets handling, optional Ingress 
 
 ```
 ingest.py              - 5-stage HF Hub ingestion: sweep, filter, fetch cards, clean, build
-pull_sample.py          - quick HF Hub pilot pull used to explore the data before ingest.py
+scripts/pull_sample.py  - quick HF Hub pilot pull used to explore the data before ingest.py
 download.py              - fetches the ONNX embedding model
 embedder.py               - ONNX embedding wrapper (encode/encode_batch)
 rag_helper.py              - RAGBase: search -> build_context -> build_prompt -> llm -> rag
-search_backends.py          - adapts VectorSearch to RAGBase's search() interface;
-                               also has RewritingVectorIndexAdapter (evaluated, not shipped)
-query_rewrite.py              - LLM query rewriting (evaluated, not shipped)
+search_backends.py          - adapts VectorSearch to RAGBase's search() interface
+query_rewrite.py              - LLM query rewriting + RewritingVectorIndexAdapter
+                                 (evaluated, not shipped)
 evaluation_utils.py             - structured-output + parallel-eval helpers (from the course)
 judge.py                          - offline LLM-as-judge for end-to-end answer quality
 evaluation.ipynb                   - experiments A-E: ground truth, retrieval, embed text,

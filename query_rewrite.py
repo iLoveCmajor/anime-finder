@@ -1,3 +1,5 @@
+from search_backends import VectorIndexAdapter
+
 REWRITE_INSTRUCTIONS = '''
 Your task is to rewrite a user's casual description of an ML task into a
 short search phrase optimized for matching against Hugging Face model
@@ -27,3 +29,17 @@ def rewrite_query(client, query, model='gpt-5.4-mini'):
     )
 
     return response.output_text.strip()
+
+
+class RewritingVectorIndexAdapter(VectorIndexAdapter):
+    """Same as VectorIndexAdapter, but rewrites the query with an LLM
+    before embedding/searching. RAGBase's prompt still sees the
+    original query - only retrieval uses the rewritten version."""
+
+    def __init__(self, vindex, embed, llm_client):
+        super().__init__(vindex, embed)
+        self.llm_client = llm_client
+
+    def search(self, query, num_results=5):
+        rewritten = rewrite_query(self.llm_client, query)
+        return super().search(rewritten, num_results=num_results)
