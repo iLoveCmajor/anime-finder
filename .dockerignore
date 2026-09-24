@@ -9,3 +9,5 @@ data_sample.json
 data_sample_random.json
 notebook.ipynb
 data/monitoring.db
+data/raw_models.jsonl
+data/raw_cards.jsonl

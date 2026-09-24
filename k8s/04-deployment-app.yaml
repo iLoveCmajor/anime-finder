@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: anime-finder-app
-  namespace: anime-finder
+  name: hf-model-finder-app
+  namespace: hf-model-finder
   labels:
-    app: anime-finder
+    app: hf-model-finder
     component: app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: anime-finder
+      app: hf-model-finder
       component: app
   template:
     metadata:
       labels:
-        app: anime-finder
+        app: hf-model-finder
         component: app
     spec:
       containers:
         - name: app
-          image: anime-finder:latest
+          image: hf-model-finder:latest
           # Local-only: the image is side-loaded with `minikube image load`,
           # never pulled. On a real cluster this becomes a registry reference
           # with a pull policy to match. Because the tag is fixed at :latest,
@@ -33,17 +33,17 @@ spec:
             - containerPort: 8501
           envFrom:
             - configMapRef:
-                name: anime-finder-config
+                name: hf-model-finder-config
           env:
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: anime-finder-secrets
+                  name: hf-model-finder-secrets
                   key: OPENAI_API_KEY
             - name: APP_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: anime-finder-secrets
+                  name: hf-model-finder-secrets
                   key: APP_PASSWORD
                   optional: true
           volumeMounts:
@@ -65,9 +65,10 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
-          # Measured on Minikube: the app sits at ~470Mi resident once the ONNX
-          # model and the index are loaded, so the original 512Mi limit left
-          # ~8% headroom and would OOMKill under concurrent queries.
+          # Measured on Minikube: the app sits at ~420-455Mi (cgroup memory)
+          # once the ONNX model and the 3,613-model index are loaded and a
+          # query has run, so a 512Mi limit would leave ~10% headroom and risk
+          # an OOMKill under concurrent queries; 1Gi keeps a safe margin.
           resources:
             requests:
               cpu: 100m
@@ -78,4 +79,4 @@ spec:
       volumes:
         - name: state
           persistentVolumeClaim:
-            claimName: anime-finder-state
+            claimName: hf-model-finder-state

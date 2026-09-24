@@ -9,8 +9,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: anime-finder-state
-  namespace: anime-finder
+  name: hf-model-finder-state
+  namespace: hf-model-finder
 spec:
   accessModes:
     - ReadWriteOnce
