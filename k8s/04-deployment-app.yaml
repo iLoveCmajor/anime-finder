@@ -19,8 +19,12 @@ spec:
         component: app
     spec:
       # The image runs as the unprivileged `app` user (uid 1000); refuse to
-      # start if that ever changes. fsGroup makes the PVC group-writable for it
-      # on volume types that support ownership changes.
+      # start if that ever changes. fsGroup makes the PVC group-writable on
+      # volume types that support ownership changes. Minikube's default
+      # hostPath storage ignores it; there, writes work because the
+      # provisioner creates each PVC directory world-writable (0777). A
+      # monitoring.db left by an older root-running image stays root-owned
+      # and read-only to uid 1000: delete the PVC, or chown the file once.
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
