@@ -180,7 +180,7 @@ make docker-up               # app: localhost:8501, dashboard: localhost:8502
 make docker-down
 ```
 
-The Docker image bakes in `data/` and `models/` at build time, so containers start fast and never call the Hub at runtime. Run the ingestion and download steps locally once, before `docker compose build` picks them up. The raw ingest dumps are excluded from the build context. The app and dashboard run as separate containers sharing a Docker volume for the SQLite monitoring database, so feedback given in the app immediately shows up in the dashboard.
+The Docker image bakes in `data/` and `models/` at build time, so containers start fast and never call the Hub at runtime. Run the ingestion and download steps locally once, before `docker compose build` picks them up. The raw ingest dumps are excluded from the build context. The app and dashboard run as separate containers sharing a Docker volume for the SQLite monitoring database, so feedback given in the app immediately shows up in the dashboard. Both containers run as an unprivileged `app` user from a single image build. A volume created by an older, root-running build of this project needs a one-time ownership fix: `docker compose run --rm --no-deps --user root app chown -R app:app /app/state`.
 
 ### With Kubernetes
 

@@ -18,6 +18,13 @@ spec:
         app: hf-model-finder
         component: app
     spec:
+      # The image runs as the unprivileged `app` user (uid 1000); refuse to
+      # start if that ever changes. fsGroup makes the PVC group-writable for it
+      # on volume types that support ownership changes.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: app
           image: hf-model-finder:latest
@@ -69,6 +76,13 @@ spec:
           # once the ONNX model and the 3,613-model index are loaded and a
           # query has run, so a 512Mi limit would leave ~10% headroom and risk
           # an OOMKill under concurrent queries; 1Gi keeps a safe margin.
+          # CPU, measured in the container: idle <1% of a core; loading the
+          # index takes ~5.4 CPU-seconds (~11s at the 500m limit, once per pod,
+          # on the first visit); a query's embed + search takes ~0.2-0.35
+          # CPU-seconds (<0.7s at the limit, small next to the ~3-5s LLM call).
+          # 100m request fits the idle baseline; 500m caps bursts. The image
+          # must ship a valid embedding cache: rebuilding it costs ~1,000
+          # CPU-seconds, which would take over half an hour at this limit.
           resources:
             requests:
               cpu: 100m

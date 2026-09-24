@@ -18,6 +18,13 @@ spec:
         app: hf-model-finder
         component: dashboard
     spec:
+      # The image runs as the unprivileged `app` user (uid 1000); refuse to
+      # start if that ever changes. fsGroup makes the PVC group-writable for it
+      # on volume types that support ownership changes.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: dashboard
           image: hf-model-finder:latest
@@ -63,6 +70,10 @@ spec:
           # Measured at ~70Mi (cgroup memory) with a near-empty monitoring DB;
           # the 384Mi limit leaves room for the DB and pandas frames to grow
           # (an earlier build peaked at ~180Mi).
+          # CPU, measured in the container: idle ~1.5% of a core; a page render
+          # reads at most 200 rows (~15 CPU-ms plus Streamlit's own work), and
+          # the one-time pandas import is ~2 CPU-seconds. 50m request / 250m
+          # limit covers that with room to spare.
           resources:
             requests:
               cpu: 50m
