@@ -12,6 +12,7 @@ data/*
 models/
 PLAN.md
 REPOSITIONING_PLAN.md
+REPOSITIONING_BACKLOG.md
 .DS_Store
 k8s/secret.yaml
 k8s/backlog.md
