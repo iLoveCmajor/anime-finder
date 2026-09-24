@@ -11,7 +11,7 @@ import db
 from auth import require_password
 from embedder import Embedder
 from minsearch import VectorSearch
-from rag_helper import RAGBase
+from rag_helper import RAGBase, format_count
 from search_backends import VectorIndexAdapter
 
 load_dotenv()
@@ -19,20 +19,22 @@ require_password()
 db.init_db()
 
 
-EMBEDDINGS_CACHE = "data/embeddings.npy"
+DOCUMENTS_PATH = "data/models.jsonl"
+EMBEDDINGS_CACHE = "data/model_embeddings.npy"
 
 
 @st.cache_resource
 def load_rag():
-    with open("data/anime.jsonl") as f:
+    with open(DOCUMENTS_PATH) as f:
         documents = [json.loads(line) for line in f]
 
     embed = Embedder()
 
-    if os.path.exists(EMBEDDINGS_CACHE):
-        X = np.load(EMBEDDINGS_CACHE)
-    else:
-        texts = [doc["description"] for doc in documents]
+    X = np.load(EMBEDDINGS_CACHE) if os.path.exists(EMBEDDINGS_CACHE) else None
+    # Re-running ingest.py changes the corpus; a cache built for a different
+    # document count would silently pair vectors with the wrong models.
+    if X is None or X.shape[0] != len(documents):
+        texts = [doc["embed_text"] for doc in documents]
         batch_size = 50
         X = []
         for i in range(0, len(texts), batch_size):
@@ -51,12 +53,12 @@ def load_rag():
 
 rag = load_rag()
 
-st.title("Anime Finder")
-st.caption("Describe a plot, vibe, or theme you remember - find the anime.")
+st.title("HF Model Finder")
+st.caption("Describe the ML task you want to solve - get matched to a pretrained model on the Hugging Face Hub.")
 
 query = st.text_input(
-    "What are you looking for?",
-    placeholder="e.g. a shy high school girl secretly gains magical powers and fights monsters at night",
+    "What do you need a model for?",
+    placeholder="e.g. transcribe German phone calls on a CPU-only server",
 )
 
 if st.button("Search") and query:
@@ -82,14 +84,18 @@ if "answer" in st.session_state:
 
     st.subheader("Retrieved candidates")
     for doc in st.session_state.results:
-        title = doc["title_romaji"]
-        if doc.get("title_english"):
-            title += f" ({doc['title_english']})"
-
-        with st.expander(title):
-            st.write("**Genres:** " + ", ".join(doc.get("genres", [])))
-            st.write("**Tags:** " + ", ".join(doc.get("tags", [])[:10]))
-            st.write(doc["description"])
+        with st.expander(doc["id"]):
+            st.markdown(f"[huggingface.co/{doc['id']}](https://huggingface.co/{doc['id']})")
+            st.write(
+                f"**Task:** {doc['pipeline_tag']} | "
+                f"**Library:** {doc.get('library_name') or 'n/a'} | "
+                f"**License:** {doc.get('license') or 'n/a'} | "
+                f"**Params:** {format_count(doc.get('params'))} | "
+                f"**Downloads (30d):** {format_count(doc.get('downloads_30d'))}"
+            )
+            if doc.get("topic_tags"):
+                st.write("**Tags:** " + ", ".join(doc["topic_tags"][:10]))
+            st.text(doc["card_text"])
 
     conversation_id = st.session_state.get("conversation_id")
     if conversation_id is not None:
