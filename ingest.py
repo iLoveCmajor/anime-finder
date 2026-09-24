@@ -29,7 +29,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.errors import EntryNotFoundError, RepositoryNotFoundError
-from huggingface_hub.utils import disable_progress_bars, logging as hf_logging
+from huggingface_hub.utils import disable_progress_bars
+from huggingface_hub.utils import logging as hf_logging
 
 RAW_PULL = 10_000
 AUTHOR_CAP = 25
@@ -69,19 +70,34 @@ STRUCTURAL_TAGS = {
 # description spells out the input -> output direction in everyday words.
 # Tags not listed here fall back to the tag name itself.
 TASK_DESCRIPTIONS = {
-    "text-generation": "text generation: a language model / chatbot that writes text, answers questions, follows instructions",
-    "image-text-to-text": "vision language model: takes images and text, answers questions about images, describes pictures",
-    "sentence-similarity": "sentence embeddings: turns sentences into vectors for semantic search, similarity, clustering",
+    "text-generation": (
+        "text generation: a language model / chatbot that writes text, answers questions, follows "
+        "instructions"
+    ),
+    "image-text-to-text": (
+        "vision language model: takes images and text, answers questions about images, describes "
+        "pictures"
+    ),
+    "sentence-similarity": (
+        "sentence embeddings: turns sentences into vectors for semantic search, similarity, "
+        "clustering"
+    ),
     "feature-extraction": "embeddings / feature extraction: turns text into vectors for semantic search and retrieval",
     "text-classification": "text classification: labels a piece of text (sentiment, topic, toxicity, intent)",
     "automatic-speech-recognition": "speech recognition: transcribes spoken audio into written text (speech to text)",
     "text-to-speech": "speech synthesis: reads written text aloud as generated audio (text to speech, voice)",
     "fill-mask": "masked language model: pretrained text encoder that fills in missing words, base for fine-tuning",
     "text-to-image": "image generation: creates images from a text prompt",
-    "token-classification": "token classification: tags words in text, named entity recognition (NER), extracting names, places, entities",
+    "token-classification": (
+        "token classification: tags words in text, named entity recognition (NER), extracting "
+        "names, places, entities"
+    ),
     "image-classification": "image classification: labels what a photo or picture shows",
     "image-to-image": "image editing: transforms an input image into another image (restyle, upscale, edit)",
-    "zero-shot-image-classification": "zero-shot image classification: matches images against arbitrary text labels, image-text embeddings",
+    "zero-shot-image-classification": (
+        "zero-shot image classification: matches images against arbitrary text labels, image-text "
+        "embeddings"
+    ),
     "time-series-forecasting": "time series forecasting: predicts future values of numeric series",
     "text-ranking": "reranking: scores how relevant a document is to a search query",
     "translation": "machine translation: translates text from one language into another",

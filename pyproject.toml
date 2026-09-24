@@ -23,6 +23,8 @@ dependencies = [
 dev = [
     { include-group = "ingest" },
     "jupyter>=1.1.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
 ]
 # Used directly only by the offline data pipeline (ingest.py, download.py,
 # pull_sample.py); the app never calls the Hub. It still reaches the image
@@ -30,3 +32,14 @@ dev = [
 ingest = [
     "huggingface-hub>=1.29.0",
 ]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

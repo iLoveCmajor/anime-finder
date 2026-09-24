@@ -10,7 +10,10 @@ class AnswerEvaluation(BaseModel):
         description="Reasoning about whether the AI answer recommends the ground-truth model or an equally valid one."
     )
     score: Literal["good", "bad"] = Field(
-        description="'good' if the recommended model satisfies the query as well as the ground-truth model, 'bad' otherwise."
+        description=(
+            "'good' if the recommended model satisfies the query as well as the ground-truth model, "
+            "'bad' otherwise."
+        )
     )
 
 
