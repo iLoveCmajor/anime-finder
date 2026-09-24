@@ -1,61 +1,50 @@
-"""Quick test pull from AniList to eyeball data quality before building
-the real ingestion pipeline. Stdlib only (no uv/venv set up yet)."""
+"""Quick test pull from the Hugging Face Hub to eyeball data quality before
+building the real ingestion pipeline: 200 models' metadata plus the README
+card for a spread of 20 of them, dumped to data_sample.json."""
 
+import collections
 import json
-import time
-import urllib.request
 
-URL = "https://graphql.anilist.co"
+from huggingface_hub import HfApi, ModelCard
 
-QUERY = """
-query ($page: Int, $perPage: Int) {
-  Page(page: $page, perPage: $perPage) {
-    media(type: ANIME, sort: POPULARITY_DESC, isAdult: false) {
-      id
-      title { romaji english }
-      description
-      genres
-      tags { name isMediaSpoiler }
-      episodes
-      seasonYear
-      format
-      status
-      averageScore
-      isAdult
-      relations {
-        edges {
-          relationType
-          node { id title { romaji } type }
-        }
-      }
+EXPAND = [
+    "downloads", "downloadsAllTime", "likes", "pipeline_tag", "library_name",
+    "tags", "cardData", "gated", "baseModels", "safetensors", "lastModified",
+]
+
+
+def to_dict(m):
+    return {
+        "id": m.id,
+        "downloads": m.downloads,
+        "downloads_all_time": m.downloads_all_time,
+        "likes": m.likes,
+        "pipeline_tag": m.pipeline_tag,
+        "library_name": m.library_name,
+        "tags": m.tags,
+        "card_data": m.card_data.to_dict() if m.card_data else None,
+        "gated": m.gated,
+        "base_models": m.base_models,
+        "params": m.safetensors.total if m.safetensors else None,
+        "last_modified": str(m.last_modified),
     }
-  }
-}
-"""
-
-
-def fetch_page(page, per_page=25):
-    body = json.dumps({"query": QUERY, "variables": {"page": page, "perPage": per_page}}).encode()
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "curl/8.0",
-    }
-    req = urllib.request.Request(URL, data=body, headers=headers)
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        return json.load(resp)["data"]["Page"]["media"]
 
 
 def main():
-    items = []
-    for page in (1, 2):
-        items.extend(fetch_page(page))
-        time.sleep(1)  # be polite, AniList rate limit is ~90 req/min
+    models = list(HfApi().list_models(sort="downloads", gated=False, expand=EXPAND, limit=200))
+    items = [to_dict(m) for m in models]
 
-    with open("project/data_sample.json", "w") as f:
-        json.dump(items, f, indent=2)
+    for item in items[::10]:
+        try:
+            item["card_text"] = ModelCard.load(item["id"]).text
+        except Exception as e:
+            item["card_error"] = f"{type(e).__name__}: {e}"
 
-    print(f"Pulled {len(items)} items -> project/data_sample.json")
+    with open("data_sample.json", "w") as f:
+        json.dump(items, f, indent=2, default=str)
+
+    print(f"Pulled {len(items)} models -> data_sample.json")
+    print("pipeline_tag:", collections.Counter(i["pipeline_tag"] for i in items).most_common(10))
 
 
 if __name__ == "__main__":
