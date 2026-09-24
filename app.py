@@ -2,115 +2,154 @@ import json
 import os
 import time
 
-import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
+from minsearch import VectorSearch
 from openai import OpenAI
 
 import db
 from auth import require_password
 from embedder import Embedder
-from minsearch import VectorSearch
-from rag_helper import RAGBase
+from embedding_cache import load_or_build
+from rag_helper import RAGBase, format_count, parse_answer
 from search_backends import VectorIndexAdapter
+
+st.set_page_config(page_title="HF Model Finder", page_icon="🤗", layout="centered")
 
 load_dotenv()
 require_password()
 db.init_db()
 
 
-EMBEDDINGS_CACHE = "data/embeddings.npy"
+DOCUMENTS_PATH = "data/models.jsonl"
+EMBEDDINGS_CACHE = "data/model_embeddings.npy"
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:8502")
+
+EXAMPLES = [
+    "Named entity recognition for German text",
+    "Transcribe English speech to text",
+    "Small sentence embedding model that runs fast on CPU",
+    "Classify photos of plants by species",
+    "Read text aloud in a natural voice",
+]
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner="Loading the model index...")
 def load_rag():
-    with open("data/anime.jsonl") as f:
+    with open(DOCUMENTS_PATH) as f:
         documents = [json.loads(line) for line in f]
 
     embed = Embedder()
-
-    if os.path.exists(EMBEDDINGS_CACHE):
-        X = np.load(EMBEDDINGS_CACHE)
-    else:
-        texts = [doc["description"] for doc in documents]
-        batch_size = 50
-        X = []
-        for i in range(0, len(texts), batch_size):
-            X.extend(embed.encode_batch(texts[i:i + batch_size]))
-        X = np.array(X)
-        np.save(EMBEDDINGS_CACHE, X)
+    X = load_or_build([doc["embed_text"] for doc in documents], embed, EMBEDDINGS_CACHE)
 
     vindex = VectorSearch()
     vindex.fit(X, documents)
 
-    vector_index = VectorIndexAdapter(vindex, embed)
-    client = OpenAI()
-
-    return RAGBase(index=vector_index, llm_client=client)
+    rag = RAGBase(index=VectorIndexAdapter(vindex, embed), llm_client=OpenAI())
+    return rag, len(documents)
 
 
-rag = load_rag()
+def find_model(rag, question):
+    started = time.time()
+    answer, results = rag.rag(question)
+    elapsed = time.time() - started
 
-st.title("Anime Finder")
-st.caption("Describe a plot, vibe, or theme you remember - find the anime.")
+    conversation_id = db.save_conversation(question, answer, elapsed)
+    return {
+        "id": conversation_id,
+        "question": question,
+        "answer": answer,
+        "candidates": results,
+        "elapsed": elapsed,
+    }
 
-query = st.text_input(
-    "What are you looking for?",
-    placeholder="e.g. a shy high school girl secretly gains magical powers and fights monsters at night",
+
+def render_candidates(result):
+    picked = parse_answer(result["answer"])
+    label = f"Retrieved candidates — {len(result['candidates'])} models, answered in {result['elapsed']:.1f}s"
+
+    with st.expander(label):
+        for doc in result["candidates"]:
+            mark = " ✅" if doc["id"] == picked else ""
+            st.markdown(f"**[{doc['id']}](https://huggingface.co/{doc['id']})**{mark}")
+            st.caption(
+                f"{doc['pipeline_tag']} · {doc.get('library_name') or 'n/a'} · "
+                f"license: {doc.get('license') or 'n/a'} · params: {format_count(doc.get('params'))} · "
+                f"downloads (30d): {format_count(doc.get('downloads_30d'))}"
+            )
+            excerpt = doc["card_text"][:500]
+            st.text(excerpt + ("..." if len(doc["card_text"]) > 500 else ""))
+
+
+def render_feedback(result):
+    """Thumbs up / down, keyed by conversation id so every answer keeps its own state."""
+    conversation_id = result["id"]
+    given = st.session_state.votes.get(conversation_id)
+
+    if given is not None:
+        st.caption("Thanks — feedback recorded." if given > 0 else "Thanks — noted.")
+        return
+
+    left, right, _ = st.columns([1, 1, 8])
+    for column, vote, label in ((left, 1, "👍"), (right, -1, "👎")):
+        if column.button(label, key=f"{vote}-{conversation_id}"):
+            db.save_feedback(conversation_id, "user", score=vote)
+            st.session_state.votes[conversation_id] = vote
+            st.rerun()
+
+
+rag, corpus_size = load_rag()
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+if "votes" not in st.session_state:
+    st.session_state.votes = {}
+
+st.title("🤗 HF Model Finder")
+st.caption(
+    "Describe the ML task you want to solve and get matched to a pretrained model on the "
+    f"Hugging Face Hub. Answers come only from the model cards of {corpus_size:,} popular models, "
+    "with the exact model id so you can load it."
 )
 
-if st.button("Search") and query:
-    with st.spinner("Searching..."):
-        start = time.time()
-        answer = rag.rag(query)
-        results = rag.last_results
-        response_time = time.time() - start
+with st.sidebar:
+    st.subheader("Try one of these")
+    for example in EXAMPLES:
+        if st.button(example, width="stretch"):
+            st.session_state.pending_question = example
 
-    conversation_id = db.save_conversation(query, answer, response_time)
+    st.divider()
+    if st.button("🗑️ Clear conversation", width="stretch"):
+        st.session_state.history = []
+        st.rerun()
 
-    st.session_state.conversation_id = conversation_id
-    st.session_state.answer = answer
-    st.session_state.results = results
+    st.divider()
+    st.caption(f"Models: {corpus_size:,} from a Hugging Face Hub snapshot")
+    st.caption("Embeddings: `all-MiniLM-L6-v2` (local, ONNX)")
+    st.caption(f"LLM: `{rag.model}`")
+    st.caption(f"Monitoring: [dashboard]({DASHBOARD_URL})")
 
-# Rendered from session_state (not just inside the button block above) so
-# the recommendation stays visible across reruns triggered by the
-# feedback buttons below - otherwise clicking +1/-1 would make the
-# answer disappear, since Streamlit reruns the whole script on every click.
-if "answer" in st.session_state:
-    st.subheader("Recommendation")
-    st.write(st.session_state.answer)
+for past in st.session_state.history:
+    with st.chat_message("user"):
+        st.write(past["question"])
 
-    st.subheader("Retrieved candidates")
-    for doc in st.session_state.results:
-        title = doc["title_romaji"]
-        if doc.get("title_english"):
-            title += f" ({doc['title_english']})"
+    with st.chat_message("assistant"):
+        st.write(past["answer"])
+        render_candidates(past)
+        render_feedback(past)
 
-        with st.expander(title):
-            st.write("**Genres:** " + ", ".join(doc.get("genres", [])))
-            st.write("**Tags:** " + ", ".join(doc.get("tags", [])[:10]))
-            st.write(doc["description"])
+question = st.chat_input("What do you need a model for?") or st.session_state.pop("pending_question", None)
 
-    conversation_id = st.session_state.get("conversation_id")
-    if conversation_id is not None:
-        if "votes" not in st.session_state:
-            st.session_state.votes = {}
+if question:
+    with st.chat_message("user"):
+        st.write(question)
 
-        given = st.session_state.votes.get(conversation_id)
+    with st.chat_message("assistant"):
+        with st.spinner("Searching model cards..."):
+            result = find_model(rag, question)
 
-        if given is not None:
-            st.caption("Thanks — feedback recorded." if given > 0 else "Thanks for the feedback.")
-        else:
-            col1, col2 = st.columns(2)
+        st.write(result["answer"])
+        render_candidates(result)
+        render_feedback(result)
 
-            with col1:
-                if st.button("\U0001F44D", key=f"feedback_up_{conversation_id}"):
-                    db.save_feedback(conversation_id, "user", score=1)
-                    st.session_state.votes[conversation_id] = 1
-                    st.rerun()
-
-            with col2:
-                if st.button("\U0001F44E", key=f"feedback_down_{conversation_id}"):
-                    db.save_feedback(conversation_id, "user", score=-1)
-                    st.session_state.votes[conversation_id] = -1
-                    st.rerun()
+    st.session_state.history.append(result)

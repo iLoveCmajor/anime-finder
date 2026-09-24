@@ -14,8 +14,8 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: anime-finder-secrets
-  namespace: anime-finder
+  name: hf-model-finder-secrets
+  namespace: hf-model-finder
 type: Opaque
 stringData:
   OPENAI_API_KEY: "REPLACE_ME"

@@ -1,13 +1,18 @@
-INSTRUCTIONS = '''
-Your task is to help a user find anime based on a description of the
-plot, vibe, or themes they're looking for.
+import re
 
-Look at the candidate anime provided (retrieved by searching synopses,
-genres, and tags). Pick exactly ONE best-matching title from the
+INSTRUCTIONS = '''
+Your task is to help a user find a pretrained model on the Hugging Face
+Hub based on a description of the ML task they want to solve, including
+any constraints they mention (language, domain, model size, license,
+hardware).
+
+Look at the candidate models provided (retrieved by searching model
+cards, tasks, and tags). Pick exactly ONE best-matching model from the
 candidates - do not hedge or list multiple options as equally likely.
 
-End your answer with a final line in this exact format:
-ANSWER: <title>
+End your answer with a final line in this exact format, copying the
+model id exactly as written in the candidates:
+ANSWER: <model id>
 
 Briefly justify your pick using only the retrieved information, then
 give the ANSWER line. If none of the candidates are a good match, still
@@ -17,9 +22,32 @@ pick the closest one but say so in your justification.
 PROMPT_TEMPLATE = '''
 QUERY: {question}
 
-CANDIDATE ANIME:
+CANDIDATE MODELS:
 {context}
 '''.strip()
+
+
+def parse_answer(text):
+    """The model id from the answer's final `ANSWER: <model id>` line, or None."""
+    match = re.search(r'ANSWER:\s*(.+)', text)
+    return match.group(1).strip() if match else None
+
+
+def format_count(n):
+    if n is None:
+        return 'unknown'
+    for unit, size in (('B', 1e9), ('M', 1e6), ('K', 1e3)):
+        if n >= size:
+            return f'{n / size:.1f}{unit}'
+    return str(n)
+
+
+def format_languages(languages):
+    if not languages:
+        return 'not specified'
+    if len(languages) > 8:
+        return f'multilingual ({len(languages)} languages)'
+    return ', '.join(languages)
 
 
 class RAGBase:
@@ -37,7 +65,6 @@ class RAGBase:
         self.instructions = instructions
         self.prompt_template = prompt_template
         self.model = model
-        self.last_results = None
 
     def search(self, query, num_results=5):
         return self.index.search(query, num_results=num_results)
@@ -46,14 +73,19 @@ class RAGBase:
         lines = []
 
         for doc in search_results:
-            title = doc['title_romaji']
-            if doc.get('title_english'):
-                title += f" ({doc['title_english']})"
-
-            lines.append('Title: ' + title)
-            lines.append('Genres: ' + ', '.join(doc.get('genres', [])))
-            lines.append('Tags: ' + ', '.join(doc.get('tags', [])[:10]))
-            lines.append('Synopsis: ' + doc['description'])
+            lines.append('Model ID: ' + doc['id'])
+            lines.append('Task: ' + doc['pipeline_tag'])
+            lines.append('Library: ' + (doc.get('library_name') or 'not specified'))
+            lines.append('License: ' + (doc.get('license') or 'not specified'))
+            lines.append('Languages: ' + format_languages(doc.get('languages')))
+            lines.append('Parameters: ' + format_count(doc.get('params')))
+            lines.append(
+                f"Downloads: {format_count(doc.get('downloads_30d'))} last 30 days, "
+                f"{format_count(doc.get('downloads_all'))} all time; "
+                f"likes: {doc.get('likes', 0)}"
+            )
+            lines.append('Tags: ' + ', '.join(doc.get('topic_tags', [])[:10]))
+            lines.append('Model card excerpt: ' + doc['card_text'])
             lines.append('')
 
         return '\n'.join(lines).strip()
@@ -78,8 +110,10 @@ class RAGBase:
         return response.output_text
 
     def rag(self, query):
+        # Returns the results instead of storing them on self: the app shares
+        # one RAGBase across all sessions (st.cache_resource), so per-request
+        # state here would leak between concurrent users.
         search_results = self.search(query)
-        self.last_results = search_results
         prompt = self.build_prompt(query, search_results)
         answer = self.llm(prompt)
-        return answer
+        return answer, search_results

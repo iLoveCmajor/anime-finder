@@ -11,8 +11,8 @@ docker-down:
 	docker compose down
 
 k8s-build:
-	docker build -t anime-finder:latest .
-	minikube image load anime-finder:latest
+	docker build -t hf-model-finder:latest .
+	minikube image load hf-model-finder:latest
 
 k8s-namespace:
 	kubectl apply -f k8s/00-namespace.yaml
@@ -23,8 +23,8 @@ k8s-namespace:
 # APP_PASSWORD if you set one. --dry-run | apply (rather than plain create)
 # makes this re-runnable and prunes keys that have been removed from .env.
 k8s-secret: k8s-namespace
-	kubectl create secret generic anime-finder-secrets \
-	  --from-env-file=.env --namespace=anime-finder \
+	kubectl create secret generic hf-model-finder-secrets \
+	  --from-env-file=.env --namespace=hf-model-finder \
 	  --dry-run=client -o yaml | kubectl apply -f -
 
 # Ingress is deliberately NOT applied here — it is an optional access path that
@@ -34,35 +34,35 @@ k8s-apply: k8s-secret
 	  -f k8s/03-pvc.yaml \
 	  -f k8s/04-deployment-app.yaml -f k8s/05-service-app.yaml \
 	  -f k8s/06-deployment-dashboard.yaml -f k8s/07-service-dashboard.yaml
-	kubectl rollout restart deployment/anime-finder-app deployment/anime-finder-dashboard -n anime-finder
-	kubectl rollout status deployment/anime-finder-app -n anime-finder --timeout=120s
-	kubectl rollout status deployment/anime-finder-dashboard -n anime-finder --timeout=120s
+	kubectl rollout restart deployment/hf-model-finder-app deployment/hf-model-finder-dashboard -n hf-model-finder
+	kubectl rollout status deployment/hf-model-finder-app -n hf-model-finder --timeout=120s
+	kubectl rollout status deployment/hf-model-finder-dashboard -n hf-model-finder --timeout=120s
 
 k8s-ingress:
 	kubectl apply -f k8s/08-ingress.yaml
 	@echo "Applied. Requires 'minikube addons enable ingress' and 'sudo minikube tunnel'."
-	@echo "Then add to /etc/hosts:  127.0.0.1  anime-finder.local dashboard.anime-finder.local"
+	@echo "Then add to /etc/hosts:  127.0.0.1  hf-model-finder.local dashboard.hf-model-finder.local"
 
 k8s-status:
-	kubectl get all -n anime-finder
+	kubectl get all -n hf-model-finder
 
 k8s-open-app:
-	minikube service anime-finder-app -n anime-finder
+	minikube service hf-model-finder-app -n hf-model-finder
 
 k8s-open-dashboard:
-	minikube service anime-finder-dashboard -n anime-finder
+	minikube service hf-model-finder-dashboard -n hf-model-finder
 
 k8s-url:
 	@echo "Optional: Ingress host-based routing instead of 'make k8s-open-*'."
 	@echo "Run 'make k8s-ingress' first, then 'sudo minikube tunnel' in a separate"
 	@echo "terminal, then add to /etc/hosts:"
-	@echo "  127.0.0.1  anime-finder.local dashboard.anime-finder.local"
-	@echo "Then: open http://anime-finder.local  /  http://dashboard.anime-finder.local"
+	@echo "  127.0.0.1  hf-model-finder.local dashboard.hf-model-finder.local"
+	@echo "Then: open http://hf-model-finder.local  /  http://dashboard.hf-model-finder.local"
 
 k8s-delete:
 	kubectl delete -f k8s/08-ingress.yaml -f k8s/07-service-dashboard.yaml \
 	  -f k8s/06-deployment-dashboard.yaml -f k8s/05-service-app.yaml \
 	  -f k8s/04-deployment-app.yaml -f k8s/03-pvc.yaml -f k8s/01-configmap.yaml \
 	  --ignore-not-found
-	kubectl delete secret anime-finder-secrets -n anime-finder --ignore-not-found
+	kubectl delete secret hf-model-finder-secrets -n hf-model-finder --ignore-not-found
 	kubectl delete -f k8s/00-namespace.yaml --ignore-not-found

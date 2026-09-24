@@ -1,12 +1,12 @@
 # Kubernetes deployment
 
-A local Minikube deployment of anime-finder, written as plain hand-written manifests (no Helm/Kustomize) so each Kubernetes primitive stays visible. This mirrors `docker-compose.yml`'s shape: two Deployments (app, dashboard) built from the same image, differing only in which Streamlit script they run, sharing one SQLite file for the monitoring data.
+A local Minikube deployment of hf-model-finder, written as plain hand-written manifests (no Helm/Kustomize) so each Kubernetes primitive stays visible. This mirrors `docker-compose.yml`'s shape: two Deployments (app, dashboard) built from the same image, differing only in which Streamlit script they run, sharing one SQLite file for the monitoring data.
 
 ## What's deployed
 
 | File | What it is |
 |---|---|
-| `00-namespace.yaml` | isolates everything under the `anime-finder` namespace |
+| `00-namespace.yaml` | isolates everything under the `hf-model-finder` namespace |
 | `01-configmap.yaml` | non-secret config (`DB_PATH`) |
 | `02-secret.example.yaml.tpl` | reference only — shows the Secret's shape. **Not a `.yaml` on purpose**: `kubectl apply -f k8s/` reads every `.yaml` in the directory, so a real extension here would overwrite the live Secret with the placeholder |
 | `03-pvc.yaml` | shared persistent storage for the SQLite monitoring DB |
@@ -25,8 +25,8 @@ This only works because Minikube is single-node: an RWO PersistentVolume can be 
 `OPENAI_API_KEY` and `APP_PASSWORD` are never written to a committed YAML file. `make k8s-secret` creates the Secret imperatively straight from the existing `.env`:
 
 ```
-kubectl create secret generic anime-finder-secrets \
-  --from-env-file=.env --namespace=anime-finder \
+kubectl create secret generic hf-model-finder-secrets \
+  --from-env-file=.env --namespace=hf-model-finder \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
@@ -56,8 +56,8 @@ Check status any time with `make k8s-status`. Tear everything down with `make k8
 **Primary (recommended):**
 
 ```bash
-make k8s-open-app          # minikube service anime-finder-app -n anime-finder
-make k8s-open-dashboard    # minikube service anime-finder-dashboard -n anime-finder
+make k8s-open-app          # minikube service hf-model-finder-app -n hf-model-finder
+make k8s-open-dashboard    # minikube service hf-model-finder-dashboard -n hf-model-finder
 ```
 
 Each opens a local URL to that Service (`minikube service` proxies a `ClusterIP` Service through the Docker driver — no sudo, no `/etc/hosts` edit). Keep the terminal running while you use it; `Ctrl-C` to stop.
@@ -70,8 +70,8 @@ minikube addons enable ingress
 sudo minikube tunnel        # separate terminal, keep running — needs sudo to bind :80/:443
 make k8s-url                # prints the /etc/hosts line to add
 # add the printed line to /etc/hosts, then:
-open http://anime-finder.local
-open http://dashboard.anime-finder.local
+open http://hf-model-finder.local
+open http://dashboard.hf-model-finder.local
 ```
 
 This path exists to demonstrate Ingress as a primitive; it's not required to use the app locally, which is why it's neither the default flow above nor part of `make k8s-apply`. ⚠️ Unlike everything else here, **this path has not been exercised end to end** — it needs an interactive `sudo` for the tunnel. The manifest is written and applies cleanly; the routing itself is untested.

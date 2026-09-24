@@ -1,26 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: anime-finder-app
-  namespace: anime-finder
+  name: hf-model-finder-app
+  namespace: hf-model-finder
   labels:
-    app: anime-finder
+    app: hf-model-finder
     component: app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: anime-finder
+      app: hf-model-finder
       component: app
   template:
     metadata:
       labels:
-        app: anime-finder
+        app: hf-model-finder
         component: app
     spec:
+      # The image runs as the unprivileged `app` user (uid 1000); refuse to
+      # start if that ever changes. fsGroup makes the PVC group-writable on
+      # volume types that support ownership changes. Minikube's default
+      # hostPath storage ignores it; there, writes work because the
+      # provisioner creates each PVC directory world-writable (0777). A
+      # monitoring.db left by an older root-running image stays root-owned
+      # and read-only to uid 1000: delete the PVC, or chown the file once.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: app
-          image: anime-finder:latest
+          image: hf-model-finder:latest
           # Local-only: the image is side-loaded with `minikube image load`,
           # never pulled. On a real cluster this becomes a registry reference
           # with a pull policy to match. Because the tag is fixed at :latest,
@@ -33,17 +44,17 @@ spec:
             - containerPort: 8501
           envFrom:
             - configMapRef:
-                name: anime-finder-config
+                name: hf-model-finder-config
           env:
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: anime-finder-secrets
+                  name: hf-model-finder-secrets
                   key: OPENAI_API_KEY
             - name: APP_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: anime-finder-secrets
+                  name: hf-model-finder-secrets
                   key: APP_PASSWORD
                   optional: true
           volumeMounts:
@@ -65,9 +76,17 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
-          # Measured on Minikube: the app sits at ~470Mi resident once the ONNX
-          # model and the index are loaded, so the original 512Mi limit left
-          # ~8% headroom and would OOMKill under concurrent queries.
+          # Measured on Minikube: the app sits at ~420-455Mi (cgroup memory)
+          # once the ONNX model and the 3,613-model index are loaded and a
+          # query has run, so a 512Mi limit would leave ~10% headroom and risk
+          # an OOMKill under concurrent queries; 1Gi keeps a safe margin.
+          # CPU, measured in the container: idle <1% of a core; loading the
+          # index takes ~5.4 CPU-seconds (~11s at the 500m limit, once per pod,
+          # on the first visit); a query's embed + search takes ~0.2-0.35
+          # CPU-seconds (<0.7s at the limit, small next to the ~3-5s LLM call).
+          # 100m request fits the idle baseline; 500m caps bursts. The image
+          # must ship a valid embedding cache: rebuilding it costs ~1,000
+          # CPU-seconds, which would take over half an hour at this limit.
           resources:
             requests:
               cpu: 100m
@@ -78,4 +97,4 @@ spec:
       volumes:
         - name: state
           persistentVolumeClaim:
-            claimName: anime-finder-state
+            claimName: hf-model-finder-state

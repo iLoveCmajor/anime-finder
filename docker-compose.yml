@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    image: hf-model-finder:latest
     ports:
       - "8501:8501"
     env_file:
@@ -12,7 +13,9 @@ services:
     command: ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
 
   dashboard:
-    build: .
+    # Same image as the app, built once by the app service.
+    image: hf-model-finder:latest
+    pull_policy: never
     ports:
       - "8502:8501"
     env_file:
