@@ -1,7 +1,7 @@
 [project]
-name = "anime-finder"
+name = "hf-model-finder"
 version = "0.1.0"
-description = "Semantic search + RAG over anime synopses: describe a plot or vibe, get back the title"
+description = "Semantic search + RAG over Hugging Face Hub model cards: describe an ML task, get matched to a pretrained model"
 readme = "README.md"
 authors = [
     { name = "Vladimir Lopatkin", email = "vlopatkinv@gmail.com" }
@@ -21,6 +21,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "huggingface-hub>=1.29.0",
+    { include-group = "ingest" },
     "jupyter>=1.1.1",
+]
+# Offline data pipeline only (ingest.py, download.py, pull_sample.py). The
+# app never calls the Hub at runtime, and the image runs `uv sync --no-dev`.
+ingest = [
+    "huggingface-hub>=1.29.0",
 ]
