@@ -108,7 +108,7 @@ For 100 randomly sampled models, an LLM wrote 3 search queries each that someone
 | Hybrid (RRF) | **0.337** | **0.221** | 0.863 | 0.583 |
 
 - **Beyond noise: vector puts a model of the right task first far more often** than hybrid (task@1 0.763 vs 0.583, 54 queries). Keyword matches drag wrong-task models into the top ranks. Keyword alone is also clearly worse at getting the right task into the top 5.
-- **Within noise: exact-model hit rate.** Hybrid is ahead of vector by 12 queries, and keyword is close behind; model queries share exact vocabulary with model cards ("NER", "Bengali", "toxic"). Sweeping RRF's `k` from 1 to 60 barely changes hybrid's number, so it's not a tuning artifact, but the gap is suggestive, not conclusive.
+- **Within noise: exact-model hit rate.** Hybrid is ahead of vector by 12 queries, and keyword is only 8 behind vector, since model queries share exact vocabulary with model cards ("NER", "Bengali", "toxic"). Sweeping RRF's `k` from 1 to 60 barely changes hybrid's number, so it's not a tuning artifact, but the gap is suggestive, not conclusive.
 
 Vector vs hybrid was then compared end to end in Experiment D.
 
@@ -176,7 +176,7 @@ Only the offline steps (`ingest.py`, `download.py`, `scripts/pull_sample.py`) us
 
 ```bash
 cp .env.example .env        # add your OPENAI_API_KEY
-uv run python download.py && uv run python ingest.py   # generate data/models locally first - see note below
+uv run python download.py && uv run python ingest.py   # or ingest.py --from-snapshot; generate data/ and models/ first, see below
 make docker-up               # app: localhost:8501, dashboard: localhost:8502
 make docker-down
 ```
