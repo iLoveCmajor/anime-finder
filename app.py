@@ -1,16 +1,15 @@
 import json
-import os
 import time
 
-import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
+from minsearch import VectorSearch
 from openai import OpenAI
 
 import db
 from auth import require_password
 from embedder import Embedder
-from minsearch import VectorSearch
+from embedding_cache import load_or_build
 from rag_helper import RAGBase, format_count
 from search_backends import VectorIndexAdapter
 
@@ -30,17 +29,7 @@ def load_rag():
 
     embed = Embedder()
 
-    X = np.load(EMBEDDINGS_CACHE) if os.path.exists(EMBEDDINGS_CACHE) else None
-    # Re-running ingest.py changes the corpus; a cache built for a different
-    # document count would silently pair vectors with the wrong models.
-    if X is None or X.shape[0] != len(documents):
-        texts = [doc["embed_text"] for doc in documents]
-        batch_size = 50
-        X = []
-        for i in range(0, len(texts), batch_size):
-            X.extend(embed.encode_batch(texts[i:i + batch_size]))
-        X = np.array(X)
-        np.save(EMBEDDINGS_CACHE, X)
+    X = load_or_build([doc["embed_text"] for doc in documents], embed, EMBEDDINGS_CACHE)
 
     vindex = VectorSearch()
     vindex.fit(X, documents)
@@ -56,16 +45,19 @@ rag = load_rag()
 st.title("HF Model Finder")
 st.caption("Describe the ML task you want to solve - get matched to a pretrained model on the Hugging Face Hub.")
 
-query = st.text_input(
-    "What do you need a model for?",
-    placeholder="e.g. transcribe German phone calls on a CPU-only server",
-)
+# A form submits the text and the button press together, so pressing Enter
+# or clicking Search runs exactly one search with what was typed.
+with st.form("search"):
+    query = st.text_input(
+        "What do you need a model for?",
+        placeholder="e.g. transcribe German phone calls on a CPU-only server",
+    )
+    submitted = st.form_submit_button("Search")
 
-if st.button("Search") and query:
+if submitted and query:
     with st.spinner("Searching..."):
         start = time.time()
-        answer = rag.rag(query)
-        results = rag.last_results
+        answer, results = rag.rag(query)
         response_time = time.time() - start
 
     conversation_id = db.save_conversation(query, answer, response_time)

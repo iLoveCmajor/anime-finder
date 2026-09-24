@@ -1,10 +1,9 @@
-import re
-
 import pandas as pd
 import streamlit as st
 
 import db
 from auth import require_password
+from rag_helper import parse_answer
 
 require_password()
 db.init_db()
@@ -47,11 +46,7 @@ else:
 
     st.subheader("Most recommended model")
 
-    def extract_answer_model(text):
-        match = re.search(r"ANSWER:\s*(.+)", text)
-        return match.group(1).strip() if match else None
-
-    models = df["answer"].apply(extract_answer_model).dropna()
+    models = df["answer"].apply(parse_answer).dropna()
     top_models = models.value_counts().head(10)
     st.bar_chart(top_models)
 

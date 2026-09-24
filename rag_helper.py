@@ -1,3 +1,5 @@
+import re
+
 INSTRUCTIONS = '''
 Your task is to help a user find a pretrained model on the Hugging Face
 Hub based on a description of the ML task they want to solve, including
@@ -23,6 +25,12 @@ QUERY: {question}
 CANDIDATE MODELS:
 {context}
 '''.strip()
+
+
+def parse_answer(text):
+    """The model id from the answer's final `ANSWER: <model id>` line, or None."""
+    match = re.search(r'ANSWER:\s*(.+)', text)
+    return match.group(1).strip() if match else None
 
 
 def format_count(n):
@@ -57,7 +65,6 @@ class RAGBase:
         self.instructions = instructions
         self.prompt_template = prompt_template
         self.model = model
-        self.last_results = None
 
     def search(self, query, num_results=5):
         return self.index.search(query, num_results=num_results)
@@ -103,8 +110,10 @@ class RAGBase:
         return response.output_text
 
     def rag(self, query):
+        # Returns the results instead of storing them on self: the app shares
+        # one RAGBase across all sessions (st.cache_resource), so per-request
+        # state here would leak between concurrent users.
         search_results = self.search(query)
-        self.last_results = search_results
         prompt = self.build_prompt(query, search_results)
         answer = self.llm(prompt)
-        return answer
+        return answer, search_results
