@@ -63,6 +63,44 @@ STRUCTURAL_TAGS = {
     "custom_code", "has_space", "deploy", "tensorboard", "text-embeddings-inference",
 }
 
+# Plain-language task descriptions put at the front of embed_text. Bare tag
+# names embed almost identically when they share words ("text to speech" vs
+# "automatic speech recognition" for "speech to text" queries), so each
+# description spells out the input -> output direction in everyday words.
+# Tags not listed here fall back to the tag name itself.
+TASK_DESCRIPTIONS = {
+    "text-generation": "text generation: a language model / chatbot that writes text, answers questions, follows instructions",
+    "image-text-to-text": "vision language model: takes images and text, answers questions about images, describes pictures",
+    "sentence-similarity": "sentence embeddings: turns sentences into vectors for semantic search, similarity, clustering",
+    "feature-extraction": "embeddings / feature extraction: turns text into vectors for semantic search and retrieval",
+    "text-classification": "text classification: labels a piece of text (sentiment, topic, toxicity, intent)",
+    "automatic-speech-recognition": "speech recognition: transcribes spoken audio into written text (speech to text)",
+    "text-to-speech": "speech synthesis: reads written text aloud as generated audio (text to speech, voice)",
+    "fill-mask": "masked language model: pretrained text encoder that fills in missing words, base for fine-tuning",
+    "text-to-image": "image generation: creates images from a text prompt",
+    "token-classification": "token classification: tags words in text, named entity recognition (NER), extracting names, places, entities",
+    "image-classification": "image classification: labels what a photo or picture shows",
+    "image-to-image": "image editing: transforms an input image into another image (restyle, upscale, edit)",
+    "zero-shot-image-classification": "zero-shot image classification: matches images against arbitrary text labels, image-text embeddings",
+    "time-series-forecasting": "time series forecasting: predicts future values of numeric series",
+    "text-ranking": "reranking: scores how relevant a document is to a search query",
+    "translation": "machine translation: translates text from one language into another",
+    "image-segmentation": "image segmentation: outlines objects or regions in an image pixel by pixel",
+    "image-to-video": "video generation from an image: animates a still picture into a video",
+    "image-to-text": "image to text: captions images or reads text in images (OCR, documents)",
+    "object-detection": "object detection: finds and boxes objects in images",
+    "audio-classification": "audio classification: labels sounds or audio clips (sound events, speaker, emotion)",
+    "text-to-video": "video generation: creates video clips from a text prompt",
+    "zero-shot-classification": "zero-shot text classification: labels text with any categories given at run time",
+    "depth-estimation": "depth estimation: predicts how far each pixel of an image is from the camera",
+    "image-feature-extraction": "image embeddings: turns images into vectors for similarity search",
+    "question-answering": "extractive question answering: finds the answer span to a question inside a passage",
+    "summarization": "summarization: condenses long text into a short summary",
+    "text-to-audio": "audio generation: creates music or sound from a text prompt",
+    "voice-activity-detection": "voice activity detection: detects when someone is speaking in audio",
+    "video-classification": "video classification: labels what happens in a video clip",
+}
+
 EXPAND = [
     "downloads", "downloadsAllTime", "likes", "pipeline_tag", "library_name",
     "tags", "cardData", "gated", "baseModels", "safetensors", "lastModified",
@@ -289,7 +327,8 @@ def structure_tags(row):
 
 
 def build_embed_text(record, prose):
-    parts = [record["pipeline_tag"].replace("-", " ")]
+    task = record["pipeline_tag"]
+    parts = [TASK_DESCRIPTIONS.get(task, task.replace("-", " "))]
     if record["library_name"]:
         parts.append(record["library_name"])
     langs = record["languages"]
