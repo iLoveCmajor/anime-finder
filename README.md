@@ -2,7 +2,14 @@
 
 Describe the ML task you want to solve in plain English and get matched to a pretrained model on the Hugging Face Hub. An LLM explains why the model fits and gives its exact id, ready for `from_pretrained(...)`.
 
-Started as a capstone project for [LLM Zoomcamp](https://github.com/DataTalksClub/llm-zoomcamp), then repositioned from its original subject (finding anime from a half-remembered plot) to this one. The pipeline, evaluation method and deployment carried over; the data source, prompts and every evaluation result were redone. You don't need to have taken the course to read this; everything relevant is explained below.
+**What's in it:**
+
+- **A resumable, 5-stage ingestion pipeline for the Hub.** It narrows 10,000 models to 3,613, with a drop count for every filter ([details](#ingestion-ingestpy)).
+- **An embedding design built around the embedder's 128-token limit.** Each model gets a dedicated `embed_text`, and an ablation shows it beats embedding the raw card ([why](#why-a-separate-embed_text), [Experiment E](#what-to-embed-experiment-e)).
+- **Evaluation end to end, not just retrieval.** Keyword, vector and hybrid search, query rewriting and prompt variants are compared, and an LLM judge accepts equally valid alternative models ([results](#evaluation)).
+- **Operations:** a monitoring dashboard, Docker Compose, a Minikube deployment, and tests with CI.
+
+Built on material from [LLM Zoomcamp](https://github.com/DataTalksClub/llm-zoomcamp): the [minsearch](https://github.com/alexeygrigorev/minsearch) search library, the `evaluation_utils.py` helpers, and the basic RAG flow (search → prompt → LLM). Everything else here is original work. The project started as the course capstone, on a different subject (finding anime from a half-remembered plot), and was then repositioned to model search. The data source, prompts and every evaluation result were redone for it.
 
 ## The problem
 
