@@ -24,8 +24,9 @@ dev = [
     { include-group = "ingest" },
     "jupyter>=1.1.1",
 ]
-# Offline data pipeline only (ingest.py, download.py, pull_sample.py). The
-# app never calls the Hub at runtime, and the image runs `uv sync --no-dev`.
+# Used directly only by the offline data pipeline (ingest.py, download.py,
+# pull_sample.py); the app never calls the Hub. It still reaches the image
+# as a transitive dependency of tokenizers.
 ingest = [
     "huggingface-hub>=1.29.0",
 ]
