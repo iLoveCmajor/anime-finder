@@ -68,7 +68,7 @@ The task description matters more than it looks. Bare tag names embed almost ide
 - **Embeddings**: [ONNX Runtime](https://onnxruntime.ai/) runs `Xenova/all-MiniLM-L6-v2` locally (`embedder.py`), with no API calls and no cost.
 - **Retrieval**: [minsearch](https://github.com/alexeygrigorev/minsearch)'s `VectorSearch`, an in-memory vector index. It was compared against keyword search, hybrid search and query rewriting; see below.
 - **Answer generation**: `rag_helper.RAGBase` retrieves 5 candidates and builds a prompt from their id, task, library, license, languages, parameter count, downloads and card excerpt. It asks an LLM (`gpt-5.4-mini` via OpenAI) to pick exactly one model and justify it. The answer ends with `ANSWER: <model id>`, copied exactly from the candidates. When none of the candidates fits, the LLM still picks the closest one but has to say so.
-- **Interface**: a Streamlit app (`app.py`): a text box in; out come a recommendation, expandable candidates (with a Hub link, metadata and card excerpt) and thumbs up/down feedback.
+- **Interface**: a Streamlit chat app (`app.py`). Example tasks in the sidebar run with one click. Each answer comes with the retrieved candidates (Hub link, metadata, card excerpt; the picked one is marked) and thumbs up/down feedback.
 - **Monitoring**: every query, answer and response time is logged to SQLite (`db.py`). A separate Streamlit dashboard (`dashboard.py`) shows usage, response times, feedback and the most recommended models.
 
 ## Dataset & scope
