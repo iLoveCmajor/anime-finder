@@ -9,7 +9,7 @@ from auth import require_password
 require_password()
 db.init_db()
 
-st.title("Anime Finder - Monitoring Dashboard")
+st.title("HF Model Finder - Monitoring Dashboard")
 
 stats = db.get_stats()
 thumbs_up, thumbs_down = db.get_user_feedback_stats()
@@ -45,15 +45,15 @@ else:
     st.subheader("User feedback")
     st.bar_chart(pd.Series({"thumbs up": thumbs_up, "thumbs down": thumbs_down}))
 
-    st.subheader("Most recommended anime")
+    st.subheader("Most recommended model")
 
-    def extract_answer_title(text):
+    def extract_answer_model(text):
         match = re.search(r"ANSWER:\s*(.+)", text)
         return match.group(1).strip() if match else None
 
-    titles = df["answer"].apply(extract_answer_title).dropna()
-    top_titles = titles.value_counts().head(10)
-    st.bar_chart(top_titles)
+    models = df["answer"].apply(extract_answer_model).dropna()
+    top_models = models.value_counts().head(10)
+    st.bar_chart(top_models)
 
     st.subheader("Recent conversations")
     for record in records[:20]:
