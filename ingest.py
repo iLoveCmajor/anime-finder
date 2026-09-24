@@ -16,6 +16,11 @@ nothing on rerun:
   5. build     structure tags, build card_text + embed_text -> data/models.jsonl
 
 Run with: uv run python ingest.py [--refresh]
+
+Or skip all of that and download the exact corpus the project's evaluation
+numbers were computed on (published as a Hugging Face dataset):
+
+  uv run python ingest.py --from-snapshot
 """
 
 import collections
@@ -23,11 +28,12 @@ import html
 import json
 import os
 import re
+import shutil
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from huggingface_hub import HfApi, ModelCard
+from huggingface_hub import HfApi, ModelCard, hf_hub_download
 from huggingface_hub.errors import EntryNotFoundError, RepositoryNotFoundError
 from huggingface_hub.utils import disable_progress_bars
 from huggingface_hub.utils import logging as hf_logging
@@ -121,6 +127,11 @@ EXPAND = [
     "downloads", "downloadsAllTime", "likes", "pipeline_tag", "library_name",
     "tags", "cardData", "gated", "baseModels", "safetensors", "lastModified",
 ]
+
+# The 2026-09-24 corpus behind the README's evaluation numbers, pinned to the
+# exact upload so later edits to the dataset can't change the results.
+SNAPSHOT_REPO = "ilovecmajor/hf-model-finder-snapshot"
+SNAPSHOT_REVISION = "53616d596687766006f4e6f92673bcc52a64ca49"
 
 RAW_MODELS_PATH = "data/raw_models.jsonl"
 RAW_CARDS_PATH = "data/raw_cards.jsonl"
@@ -375,9 +386,19 @@ def build_record(row, cleaned, prose):
     return record
 
 
+def download_snapshot():
+    for name in ("models.jsonl", "ingest_stats.json"):
+        path = hf_hub_download(SNAPSHOT_REPO, name, repo_type="dataset", revision=SNAPSHOT_REVISION)
+        shutil.copy(path, os.path.join("data", name))
+    print(f"Downloaded the {SNAPSHOT_REPO} snapshot to {OUT_PATH}")
+
+
 def main():
     hf_logging.set_verbosity_error()
     disable_progress_bars()
+    if "--from-snapshot" in sys.argv:
+        download_snapshot()
+        return
     refresh = "--refresh" in sys.argv
 
     drops = collections.Counter()

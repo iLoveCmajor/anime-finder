@@ -83,12 +83,12 @@ The task description matters more than it looks. Bare tag names embed almost ide
 The corpus is a **curated snapshot of popular models**, not the whole Hub:
 
 - **Popularity bias.** It includes only models from the top 10,000 by downloads. The least-downloaded kept model had ~6,200 downloads in the last 30 days. The app is good at finding well-established options and won't know brand-new or niche models. If a very specific query gets a weak match, the model most likely isn't in the corpus, rather than retrieval having failed.
-- **30-day window.** The Hub sorts by rolling 30-day downloads; sorting by all-time downloads is rejected by the API. So *which* models make the cut depends on when `ingest.py` runs, and re-running it later gives a somewhat different corpus. All-time downloads are stored and shown alongside the 30-day count.
+- **30-day window.** The Hub sorts by rolling 30-day downloads; sorting by all-time downloads is rejected by the API. So *which* models make the cut depends on when `ingest.py` runs, and re-running it later gives a somewhat different corpus. All-time downloads are stored and shown alongside the 30-day count. The exact corpus used for every number in this README is published as the Hugging Face dataset [`ilovecmajor/hf-model-finder-snapshot`](https://huggingface.co/datasets/ilovecmajor/hf-model-finder-snapshot).
 - **Deliberate exclusions.** Gated models, quantized copies and more than 25 models per author are left out. The app recommends an original model; you choose your own quantization.
 
 ## Evaluation
 
-All numbers come from `evaluation.ipynb`. They were produced fresh for this dataset: results from the anime version of this project were not carried over.
+All numbers come from `evaluation.ipynb`, run on the 2026-09-24 corpus published as [`ilovecmajor/hf-model-finder-snapshot`](https://huggingface.co/datasets/ilovecmajor/hf-model-finder-snapshot). They were produced fresh for this dataset: results from the anime version of this project were not carried over. To reproduce them, download that corpus with `uv run python ingest.py --from-snapshot` instead of running a fresh ingest. The retrieval numbers then come out exactly the same; the judge and rewrite numbers call an LLM, so they vary slightly between runs.
 
 ### Ground truth (Experiment A)
 
@@ -161,12 +161,13 @@ Rewriting slightly hurts, and it costs an extra LLM round trip per query. An ear
 uv sync
 cp .env.example .env         # add your OPENAI_API_KEY
 uv run python download.py    # one-time: fetches the ONNX embedding model (~90MB)
-uv run python ingest.py      # one-time: pulls + filters the Hub snapshot (~5-10 min)
+uv run python ingest.py      # one-time: pulls + filters a fresh Hub snapshot (~5-10 min)
+                             #   or: ingest.py --from-snapshot  (the published corpus, seconds)
 make run                     # the app, http://localhost:8501
 make dashboard               # the dashboard, http://localhost:8502 (separate terminal)
 ```
 
-`ingest.py` resumes where it stopped if interrupted. It reuses the saved metadata sweep; pass `--refresh` to pull a fresh one. The first app launch embeds all 3,613 models (~40s) and caches the result to `data/model_embeddings.npy`. Later launches load the cache, which is rebuilt automatically if the corpus size changes.
+`ingest.py` resumes where it stopped if interrupted. It reuses the saved metadata sweep; pass `--refresh` to pull a fresh one. The first app launch embeds all 3,613 models (~40s) and caches the result to `data/model_embeddings.npy`. Later launches load the cache, which is rebuilt automatically whenever any model's `embed_text` changes.
 
 Only the offline steps (`ingest.py`, `download.py`, `pull_sample.py`) use `huggingface-hub` directly, so it's declared in an `ingest` dependency group (installed by `uv sync` by default) rather than as a runtime dependency. The running app never calls the Hub.
 
@@ -237,7 +238,7 @@ k8s/                                   - Minikube manifests + design notes
 | Interface | Streamlit app (`app.py`) |
 | Monitoring | `db.py` + `dashboard.py`: user feedback collected, dashboard with 5 charts |
 | Containerization | `docker-compose.yml`: app + dashboard |
-| Reproducibility | "Running it": `uv.lock` pins dependencies, the dataset can be regenerated with `ingest.py`, retrieval numbers reproduce from the committed `data/ground_truth.csv` |
+| Reproducibility | `uv.lock` pins dependencies; the evaluated corpus is published as [`ilovecmajor/hf-model-finder-snapshot`](https://huggingface.co/datasets/ilovecmajor/hf-model-finder-snapshot) (`ingest.py --from-snapshot`, pinned to one revision) together with the committed `data/ground_truth.csv`, so the retrieval numbers reproduce exactly; `ingest.py` builds a fresh corpus |
 | Hybrid search | Experiment B/C: evaluated, not shipped (tied end to end, vector is simpler) |
 | Query rewriting | Experiment D: evaluated, not shipped (slightly worse retrieval, extra latency) |
 | Kubernetes deployment | "With Kubernetes": `k8s/` manifests; `make k8s-apply`, then `make k8s-status` and `make k8s-open-app` to verify |
